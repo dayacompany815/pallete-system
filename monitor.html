@@ -519,34 +519,52 @@ function renderShipped(){
     if(!groups[key])groups[key]={ts:t?t.getTime():0,list:[]};
     groups[key].list.push(p);
   });
-  // 최근 시간이 위로
-  var gkeys=Object.keys(groups).sort(function(a,b){return groups[b].ts-groups[a].ts;});
+  // 빨리 출고한 순서대로 (오래된→최신, 위가 먼저 나간 것)
+  var gkeys=Object.keys(groups).sort(function(a,b){return groups[a].ts-groups[b].ts;});
+
+  // 엘베 표시 순서
+  var elevOrder=['office','inbound'];
+  function elevKeyOf(p){ return ELEVATORS[p.elevator]?p.elevator:'etc'; }
 
   container.innerHTML=secTitle;
   gkeys.forEach(function(key){
     var g=groups[key];
     var gp=g.list;
     var gBox=gp.reduce(function(s,p){return s+(p.totalBox||0);},0);
-    // 그룹 내 층/엘베 요약
-    var floorsIn={}; gp.forEach(function(p){floorsIn[p.floor]=true;});
-    var floorTags=ALL_FLOORS.filter(function(f){return floorsIn[f];}).map(function(f){
-      return '<span style="background:'+FCOLORS[f]+';color:#fff;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:800;margin-left:4px;">'+FN[f]+'</span>';
-    }).join('');
+    // 시간 그룹 헤더
     var hdr=document.createElement('div');
-    hdr.style.cssText='display:flex;align-items:center;gap:6px;margin:14px 0 8px;padding:6px 10px;background:rgba(46,204,113,.08);border-left:3px solid var(--shipped);border-radius:6px;';
-    hdr.innerHTML='<span style="font-size:13px;font-weight:900;color:var(--shipped);">🕐 '+key+'</span>'
-      +'<span style="font-size:11px;color:var(--muted);font-weight:700;">'+gp.length+'PLT · '+gBox+'BOX</span>'
-      +'<span style="margin-left:auto;">'+floorTags+'</span>';
+    hdr.style.cssText='display:flex;align-items:center;gap:8px;margin:16px 0 8px;padding:7px 12px;background:rgba(46,204,113,.08);border-left:4px solid var(--shipped);border-radius:6px;';
+    hdr.innerHTML='<span style="font-size:14px;font-weight:900;color:var(--shipped);">🕐 '+key+' 출고</span>'
+      +'<span style="font-size:11px;color:var(--muted);font-weight:700;">'+gp.length+'PLT · '+gBox+'BOX</span>';
     container.appendChild(hdr);
-    if(viewMode==='card'){
-      var grid=document.createElement('div'); grid.className='plt-grid';
-      gp.forEach(function(p){ grid.appendChild(makePltCard(p,'shipped',p.fbKey)); });
-      container.appendChild(grid);
-    } else {
-      var wrap=document.createElement('div');
-      wrap.innerHTML=makeShippedTextTable(gp);
-      container.appendChild(wrap);
-    }
+
+    // 엘베별 소분류
+    var byElev={};
+    gp.forEach(function(p){var ek=elevKeyOf(p);(byElev[ek]=byElev[ek]||[]).push(p);});
+    var eks=elevOrder.filter(function(e){return byElev[e];});
+    if(byElev['etc'])eks.push('etc');
+    eks.forEach(function(ek){
+      var list=byElev[ek];
+      list.sort(function(a,b){return ALL_FLOORS.indexOf(a.floor)-ALL_FLOORS.indexOf(b.floor)||a.pltNo-b.pltNo;});
+      var eBox=list.reduce(function(s,p){return s+(p.totalBox||0);},0);
+      var ename=ek==='etc'?'엘베 미지정':ELEVATORS[ek];
+      var ecolor=ek==='etc'?'#888':(ELEV_COLOR[ek]||'#555');
+      var eemoji=ek==='etc'?'🛗':(ELEV_EMOJI[ek]||'🛗');
+      var sub=document.createElement('div');
+      sub.style.cssText='display:flex;align-items:center;gap:7px;margin:8px 0 6px;padding:4px 10px;border-left:3px solid '+ecolor+';';
+      sub.innerHTML='<span style="background:'+ecolor+';color:#fff;border-radius:5px;padding:2px 9px;font-size:11px;font-weight:800;">'+eemoji+' '+ename+'</span>'
+        +'<span style="font-size:11px;color:var(--muted);font-weight:700;">'+list.length+'PLT · '+eBox+'BOX</span>';
+      container.appendChild(sub);
+      if(viewMode==='card'){
+        var grid=document.createElement('div'); grid.className='plt-grid';
+        list.forEach(function(p){ grid.appendChild(makePltCard(p,'shipped',p.fbKey)); });
+        container.appendChild(grid);
+      } else {
+        var wrap=document.createElement('div');
+        wrap.innerHTML=makeShippedTextTable(list);
+        container.appendChild(wrap);
+      }
+    });
   });
 }
 
@@ -679,11 +697,23 @@ function renderClosing(){
     if(!byFloor[n.floor]) byFloor[n.floor]={floor:n.floor,worker:n.worker,closedAt:n.closedAt,totalPlt:n.totalPlt,totalBox:n.totalBox,pallets:null};
   });
   var floors=ALL_FLOORS.filter(function(f){return byFloor[f];});
-  if(floors.length===0){container.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">마감 완료된 층이 없습니다</div>';return;}
-  // 전체 합계
+  // 전체 합계 (마감된 층 기준)
   var gPlt=0,gBox=0;
   floors.forEach(function(f){var r=byFloor[f];var pl=r.pallets;gPlt+=pl?pl.length:(r.totalPlt||0);gBox+=pl?pl.reduce(function(s,p){return s+(p.totalBox||0);},0):(r.totalBox||0);});
-  var html='<div class="tbl-title">🏁 마감 완료 현황 <span class="sec-cnt" style="color:var(--shipped);font-weight:800;">'+floors.length+'개 층 · '+gPlt+'PLT · '+gBox+'BOX</span></div>';
+  var html='<div class="tbl-title">🏁 마감 완료 현황 <span class="sec-cnt" style="color:var(--shipped);font-weight:800;">'+floors.length+'/'+ALL_FLOORS.length+'개 층 마감 · '+gPlt+'PLT · '+gBox+'BOX</span></div>';
+
+  // 층별 마감 상태 한눈에 (마감완료 / 진행중)
+  html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">';
+  ALL_FLOORS.forEach(function(f){
+    var done=!!byFloor[f];
+    html+='<div style="flex:1;min-width:88px;background:'+(done?'rgba(46,204,113,.1)':'var(--card)')+';border:1.5px solid '+(done?'rgba(46,204,113,.4)':'var(--border)')+';border-radius:10px;padding:9px;text-align:center;">'
+      +'<div style="background:'+FCOLORS[f]+';color:#fff;border-radius:6px;padding:2px 0;font-size:12px;font-weight:900;margin-bottom:6px;">'+FN[f]+'</div>'
+      +(done?'<div style="font-size:12px;font-weight:800;color:var(--a3);">✅ 마감완료</div>':'<div style="font-size:12px;font-weight:700;color:var(--muted);">⏳ 진행중</div>')
+      +'</div>';
+  });
+  html+='</div>';
+
+  if(floors.length===0){container.innerHTML=html+'<div style="text-align:center;padding:30px;color:var(--muted);font-size:14px;">아직 마감 완료된 층이 없습니다</div>';return;}
   html+='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;">';
   floors.forEach(function(floor){
     var r=byFloor[floor];

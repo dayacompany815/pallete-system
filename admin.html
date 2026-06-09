@@ -143,6 +143,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','App
     <div class="page" id="page3"></div>
     <div class="page" id="page4"></div>
     <div class="page" id="page5"></div>
+    <div class="page" id="page6"></div>
   </div>
 </div>
 
@@ -175,6 +176,7 @@ var curTab=0, clockTimer=null;
 
 var _mem={};
 function lsGet(k){try{var v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}return _mem[k]||null;}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}_mem[k]=v;}
 
 function loadCfgLocal(){
   var s=lsGet('plt_cfg');
@@ -438,6 +440,17 @@ function renderPage0(){
       +'<div class="bgn"><div class="bgn-lbl">🏁 마감 층</div><div class="bgn-val" style="color:var(--a3)">'+doneCnt+'/'+ALL_FLOORS.length+'</div></div>'
     +'</div></div>';
 
+  // 층별 마감 상태 한눈에
+  html+='<div style="display:flex;gap:5px;margin-bottom:10px;">';
+  ALL_FLOORS.forEach(function(f){
+    var done=doneStatus[f]||false;
+    html+='<div style="flex:1;background:'+(done?'rgba(46,204,113,.12)':'var(--card)')+';border:1px solid '+(done?'rgba(46,204,113,.35)':'var(--border)')+';border-radius:9px;padding:7px 2px;text-align:center;">'
+      +'<div style="background:'+FCOLORS[f]+';color:#fff;border-radius:5px;padding:1px 0;font-size:11px;font-weight:900;margin-bottom:4px;">'+FNS[f]+'</div>'
+      +(done?'<div style="font-size:10px;font-weight:800;color:var(--a3);">✅마감</div>':'<div style="font-size:10px;font-weight:700;color:var(--muted);">⏳진행</div>')
+      +'</div>';
+  });
+  html+='</div>';
+
   // 마감 알림
   var alerts=[];
   if(notifications&&typeof notifications==='object'){
@@ -572,10 +585,10 @@ function renderPage2(){
     html+='</div>';
   });
   if(!hasAny) html='<div class="empty"><div class="empty-icon">🏢</div>대기 중인 파레트가 없습니다</div>';
-  document.getElementById('page4').innerHTML=html;
+  document.getElementById('page2').innerHTML=html;
 }
 
-function renderPage2(){
+function renderPage3(){
   var html='';
   var hasAny=false;
   cfg.couriers.forEach(function(c){
@@ -603,10 +616,10 @@ function renderPage2(){
     html+='</div></div>';
   });
   if(!hasAny) html='<div class="empty"><div class="empty-icon">🚚</div>대기 중인 파레트가 없습니다</div>';
-  document.getElementById('page2').innerHTML=html;
+  document.getElementById('page3').innerHTML=html;
 }
 
-function renderPage3(){
+function renderPage4(){
   var html='';
   var pharmaMap={};
   ALL_FLOORS.forEach(function(f){
@@ -619,7 +632,7 @@ function renderPage3(){
     });
   });
   var pharmas=cfg.pharmas.filter(function(p){return pharmaMap[p];});
-  if(pharmas.length===0){document.getElementById('page3').innerHTML='<div class="empty"><div class="empty-icon">💊</div>데이터가 없습니다</div>';return;}
+  if(pharmas.length===0){document.getElementById('page4').innerHTML='<div class="empty"><div class="empty-icon">💊</div>데이터가 없습니다</div>';return;}
   pharmas.forEach(function(pname,pi){
     var pm=pharmaMap[pname];
     var color=PC[pi%PC.length];
@@ -638,7 +651,7 @@ function renderPage3(){
     });
     html+='</div></div>';
   });
-  document.getElementById('page3').innerHTML=html;
+  document.getElementById('page4').innerHTML=html;
 }
 
 document.getElementById('adminDate').textContent=getTodayStr();
