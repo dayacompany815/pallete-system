@@ -117,6 +117,21 @@ tfoot td{background:var(--card2);font-weight:800;}
 /* 마감알림 */
 .alert-bar{background:rgba(46,204,113,.06);border-bottom:1px solid rgba(46,204,113,.2);padding:8px 24px;display:flex;flex-wrap:wrap;gap:8px;}
 .alert-chip{background:var(--card);border:1.5px solid var(--a3);border-radius:9px;padding:5px 12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;}
+
+/* 테이블 헤더 */
+.tbl-title{padding:10px 14px;background:var(--card2);border-bottom:1px solid var(--border);font-size:12px;font-weight:800;}
+
+/* 예상현황 KPI */
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:13px;padding:14px;text-align:center;}
+.kpi-icon{font-size:22px;margin-bottom:4px;}
+.kpi-label{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:4px;}
+.kpi-val{font-size:28px;font-weight:900;line-height:1;}
+.kpi-sub{font-size:10px;color:var(--muted);margin-top:3px;}
+
+/* 리포트 오버레이 */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+.overlay.show{display:flex;}
+.report-modal{background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:600px;max-height:85vh;overflow-y:auto;}
 </style>
 </head>
 <body>
@@ -188,6 +203,26 @@ tfoot td{background:var(--card2);font-weight:800;}
   <div class="tab-page" id="page-overview">
     <div id="overviewContent"></div>
   </div>
+
+  <!-- 마감현황 탭 -->
+  <div class="tab-page" id="page-closing">
+    <div id="closingContent"></div>
+  </div>
+
+  <!-- 통계 탭 -->
+  <div class="tab-page" id="page-summary">
+    <div id="summaryContent"></div>
+  </div>
+
+  <!-- 예상현황 탭 -->
+  <div class="tab-page" id="page-expect">
+    <div id="expectContent"></div>
+  </div>
+
+  <!-- 과거데이터 탭 -->
+  <div class="tab-page" id="page-history">
+    <div id="historyContent"></div>
+  </div>
 </div>
 
 <script>
@@ -202,10 +237,12 @@ var DC = [
   {id:'yongma',name:'용마',icon:'🏎',color:'#2ecc71'}
 ];
 
-var waiting = {}, doneStatus = {}, notifications = {};
-var shipments = {}; // 출고완료 데이터
+var waiting = {}, doneStatus = {}, notifications = {}, closingReports = {};
+var shipments = {};
 var cfg = {couriers: DC};
 var currentTab = 'waiting', viewMode = 'card', floorFilter = 'all';
+
+function pad(n){return String(n).padStart(2,'0');}
 
 /* 스토리지 */
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
@@ -233,6 +270,7 @@ async function loadData(){
     var r3 = await fetch(FB_URL+'/notifications.json');
     var d3 = await r3.json();
     notifications = d3 || {};
+    closingReports = notifications;
 
     var now = new Date();
     document.getElementById('lastUpd').textContent =
@@ -249,7 +287,7 @@ async function loadData(){
 function switchTab(tab){
   currentTab = tab;
   document.querySelectorAll('.main-tab').forEach(function(b){b.classList.toggle('active',b.id==='tab-'+tab);});
-  document.querySelectorAll('.tpage').forEach(function(p){p.classList.toggle('active',p.id==='tpage-'+tab);});
+  document.querySelectorAll('.tab-page').forEach(function(p){p.classList.toggle('active',p.id==='page-'+tab);});
   renderCurrentTab();
 }
 
@@ -270,24 +308,24 @@ function setFloor(f, btn){
 
 function render(){
   renderKPI();
-  renderStatus();
+  renderKPICards();
   renderAlerts();
   renderCurrentTab();
 }
 
 function renderCurrentTab(){
-  if(currentTab==='status') renderStatus();
-  else if(currentTab==='waiting') renderWaiting();
+  if(currentTab==='waiting') renderWaiting();
   else if(currentTab==='shipped') renderShipped();
+  else if(currentTab==='overview') renderOverview();
   else if(currentTab==='closing') renderClosing();
-  else if(currentTab==='summary') renderSummary();
+  else if(currentTab==='summary') renderStatTab();
   else if(currentTab==='expect') renderExpect();
   else if(currentTab==='history') renderHistory();
-  else renderOverview();
+  else renderWaiting();
 }
 
-/* 요약 */
-function renderSummary(){
+/* KPI 뱃지/sumGrid 업데이트 */
+function renderKPICards(){
   var totalWait=0, totalWaitBox=0, totalShip=0, totalShipBox=0;
   ALL_FLOORS.forEach(function(f){
     (waiting[f]||[]).forEach(function(p){ totalWait++; totalWaitBox+=p.totalBox||0; });
@@ -618,7 +656,7 @@ function renderClosing(){
     pallets.forEach(function(p){if(!courierStat[p.courierId])courierStat[p.courierId]={plt:0,box:0};courierStat[p.courierId].plt++;courierStat[p.courierId].box+=p.totalBox||0;});
     html+='<div style="background:var(--card);border:1.5px solid rgba(46,204,113,.3);border-radius:14px;overflow:hidden;">'
       +'<div style="padding:12px 16px;background:rgba(46,204,113,.06);border-bottom:1px solid rgba(46,204,113,.15);display:flex;align-items:center;gap:10px;">'
-        +'<div style="background:'+FC[floor]+';color:#fff;border-radius:7px;padding:4px 12px;font-size:13px;font-weight:900;">'+FN[floor]+'</div>'
+        +'<div style="background:'+FCOLORS[floor]+';color:#fff;border-radius:7px;padding:4px 12px;font-size:13px;font-weight:900;">'+FN[floor]+'</div>'
         +'<div style="flex:1;"><div style="font-size:12px;font-weight:700;">'+r.worker+'</div><div style="font-size:10px;color:var(--muted);">'+ts+'</div></div>'
         +'<div style="text-align:right;"><div style="font-size:18px;font-weight:900;color:var(--a3);">'+pallets.length+'PLT</div><div style="font-size:11px;color:var(--muted);">'+totalBox+'BOX</div></div>'
       +'</div>'
@@ -631,7 +669,7 @@ function renderClosing(){
 }
 
 /* ── 통계 ── */
-function renderSummary(){
+function renderStatTab(){
   var container=document.getElementById('summaryContent');
   if(!container)return;
   var pharmaMap={};
@@ -643,13 +681,13 @@ function renderSummary(){
   Object.keys(pharmaMap).sort().forEach(function(pname){
     var pm=pharmaMap[pname];var total=pm.wait+pm.ship;
     var pct=total>0?Math.round(pm.ship/total*100):0;
-    rows+='<tr><td><strong>'+pname+'</strong></td><td style="text-align:center;color:var(--wait-color);font-weight:700;">'+pm.wait+'</td><td style="text-align:center;color:var(--ship-color);font-weight:700;">'+pm.ship+'</td><td style="text-align:center;font-weight:700;">'+total+'</td><td style="text-align:center;"><div style="background:var(--card2);border-radius:4px;overflow:hidden;height:14px;width:80px;display:inline-block;"><div style="background:var(--ship-color);height:100%;width:'+pct+'%;"></div></div> '+pct+'%</td></tr>';
+    rows+='<tr><td><strong>'+pname+'</strong></td><td style="text-align:center;color:var(--waiting);font-weight:700;">'+pm.wait+'</td><td style="text-align:center;color:var(--shipped);font-weight:700;">'+pm.ship+'</td><td style="text-align:center;font-weight:700;">'+total+'</td><td style="text-align:center;"><div style="background:var(--card2);border-radius:4px;overflow:hidden;height:14px;width:80px;display:inline-block;"><div style="background:var(--shipped);height:100%;width:'+pct+'%;"></div></div> '+pct+'%</td></tr>';
   });
   var flRows='';
   ALL_FLOORS.forEach(function(floor){
     var wl=waiting[floor]||[];var sl=[];Object.keys(shipments||{}).forEach(function(k){var e=shipments[k];if(e&&e.floor===floor&&e.pallets)sl=sl.concat(e.pallets);});
     var wp=wl.length,wb=wl.reduce(function(s,p){return s+p.totalBox;},0),sp=sl.length,sb=sl.reduce(function(s,p){return s+p.totalBox;},0);
-    flRows+='<tr><td><span style="background:'+FC[floor]+';color:#fff;border-radius:5px;padding:3px 8px;font-size:12px;font-weight:900;">'+FN[floor]+'</span></td><td style="text-align:center;color:var(--wait-color);font-weight:800;">'+wp+'</td><td style="text-align:center;color:var(--wait-color);">'+wb+'</td><td style="text-align:center;color:var(--ship-color);font-weight:800;">'+sp+'</td><td style="text-align:center;color:var(--ship-color);">'+sb+'</td><td style="text-align:center;"><span style="background:'+(doneStatus[floor]?'rgba(46,204,113,.15)':'rgba(249,115,22,.15)')+';color:'+(doneStatus[floor]?'var(--ship-color)':'var(--wait-color)')+';border-radius:5px;padding:2px 7px;font-size:11px;font-weight:800;">'+(doneStatus[floor]?'✅마감':'⏳진행')+'</span></td></tr>';
+    flRows+='<tr><td><span style="background:'+FCOLORS[floor]+';color:#fff;border-radius:5px;padding:3px 8px;font-size:12px;font-weight:900;">'+FN[floor]+'</span></td><td style="text-align:center;color:var(--waiting);font-weight:800;">'+wp+'</td><td style="text-align:center;color:var(--waiting);">'+wb+'</td><td style="text-align:center;color:var(--shipped);font-weight:800;">'+sp+'</td><td style="text-align:center;color:var(--shipped);">'+sb+'</td><td style="text-align:center;"><span style="background:'+(doneStatus[floor]?'rgba(46,204,113,.15)':'rgba(249,115,22,.15)')+';color:'+(doneStatus[floor]?'var(--shipped)':'var(--waiting)')+';border-radius:5px;padding:2px 7px;font-size:11px;font-weight:800;">'+(doneStatus[floor]?'✅마감':'⏳진행')+'</span></td></tr>';
   });
   container.innerHTML='<div class="tbl-wrap"><div class="tbl-title">💊 제약사별 현황</div><table><thead><tr><th>제약사</th><th>대기BOX</th><th>출고BOX</th><th>합계</th><th>출고율</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
     +'<div class="tbl-wrap" style="margin-top:14px;"><div class="tbl-title">🏢 층별 요약</div><table><thead><tr><th>층</th><th>대기PLT</th><th>대기BOX</th><th>출고PLT</th><th>출고BOX</th><th>상태</th></tr></thead><tbody>'+flRows+'</tbody></table></div>';
@@ -660,7 +698,7 @@ var expectData={};
 function renderExpect(){
   var container=document.getElementById('expectContent');
   if(!container)return;
-  fetch(FB+'/expect.json?t='+Date.now())
+  fetch(FB_URL+'/expect.json?t='+Date.now())
     .then(function(r){return r.json();})
     .then(function(d){
       if(!d||!d.data||!Object.keys(d.data).some(function(k){return d.data[k]>0;})){
@@ -687,7 +725,7 @@ function renderExpect(){
         (waiting[floor]||[]).forEach(function(p){if(actByC[p.courierId]!==undefined)actByC[p.courierId]++;});
         Object.keys(shipments||{}).forEach(function(k){var e=shipments[k];if(e&&e.floor===floor&&e.pallets)e.pallets.forEach(function(p){if(actByC[p.courierId]!==undefined)actByC[p.courierId]++;});});
         var fExp=0,fAct=0;
-        html+='<tr><td><span style="background:'+FC[floor]+';color:#fff;border-radius:5px;padding:3px 8px;font-size:12px;font-weight:900;">'+FN[floor]+'</span></td>';
+        html+='<tr><td><span style="background:'+FCOLORS[floor]+';color:#fff;border-radius:5px;padding:3px 8px;font-size:12px;font-weight:900;">'+FN[floor]+'</span></td>';
         cfg.couriers.forEach(function(c){
           var exp=expectData[floor+'_'+c.id]||0,act=actByC[c.id]||0,diff=act-exp;
           html+='<td style="text-align:center;color:var(--a4);font-weight:700;">'+(exp>0?exp:'-')+'</td>';
@@ -752,8 +790,8 @@ function renderKPI(){
   Object.keys(shipments).forEach(function(k){var e=shipments[k];if(e&&e.pallets)e.pallets.forEach(function(p){sp++;sb+=p.totalBox||0;});});
   var doneCnt=ALL_FLOORS.filter(function(f){return doneStatus[f];}).length;
   var kpis=[
-    {icon:'⏳',label:'대기중',val:wp+'PLT',sub:wb+'BOX',col:'var(--wait-color)'},
-    {icon:'✅',label:'출고완료',val:sp+'PLT',sub:sb+'BOX',col:'var(--ship-color)'},
+    {icon:'⏳',label:'대기중',val:wp+'PLT',sub:wb+'BOX',col:'var(--waiting)'},
+    {icon:'✅',label:'출고완료',val:sp+'PLT',sub:sb+'BOX',col:'var(--shipped)'},
     {icon:'📦',label:'총 BOX',val:wb+sb,sub:'대기+출고',col:'var(--a1)'},
     {icon:'🏁',label:'마감완료',val:doneCnt+'/'+ALL_FLOORS.length+'층',sub:'',col:'var(--a4)'},
   ];
@@ -771,9 +809,9 @@ function renderKPI(){
         +'<div style="font-size:18px;margin-bottom:4px;">'+k.icon+'</div>'
         +'<div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:5px;">'+k.label+'</div>'
         +'<div style="display:flex;gap:6px;align-items:center;">'
-          +'<div style="text-align:center;flex:1;"><div style="font-size:10px;color:var(--wait-color);font-weight:700;">⏳대기</div><div style="font-size:20px;font-weight:900;color:var(--wait-color);">'+(parts[0]?parts[0].replace('⏳',''):'0')+'</div></div>'
+          +'<div style="text-align:center;flex:1;"><div style="font-size:10px;color:var(--waiting);font-weight:700;">⏳대기</div><div style="font-size:20px;font-weight:900;color:var(--waiting);">'+(parts[0]?parts[0].replace('⏳',''):'0')+'</div></div>'
           +'<div style="width:1px;height:32px;background:var(--border);"></div>'
-          +'<div style="text-align:center;flex:1;"><div style="font-size:10px;color:var(--ship-color);font-weight:700;">✅출고</div><div style="font-size:20px;font-weight:900;color:var(--ship-color);">'+(parts[1]?parts[1].replace('✅',''):'0')+'</div></div>'
+          +'<div style="text-align:center;flex:1;"><div style="font-size:10px;color:var(--shipped);font-weight:700;">✅출고</div><div style="font-size:20px;font-weight:900;color:var(--shipped);">'+(parts[1]?parts[1].replace('✅',''):'0')+'</div></div>'
         +'</div>'
         +'<div style="font-size:10px;color:var(--muted);margin-top:4px;">'+k.sub+'</div>'
       +'</div>';
@@ -800,12 +838,12 @@ function renderStatus(){
     var isDone=doneStatus[floor]||false;
     html+='<div style="background:var(--card);border:1px solid '+(isDone?'rgba(46,204,113,.3)':'var(--border)')+';border-radius:13px;overflow:hidden;">'
       +'<div style="padding:10px 12px;background:var(--card2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">'
-        +'<div style="background:'+FC[floor]+';color:#fff;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:900;">'+FN[floor]+'</div>'
+        +'<div style="background:'+FCOLORS[floor]+';color:#fff;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:900;">'+FN[floor]+'</div>'
         +(isDone?'<span style="margin-left:auto;font-size:10px;font-weight:800;color:var(--a3);">✅마감</span>':'')
       +'</div>'
       +'<div style="padding:9px 12px;">'
-        +'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--muted);">⏳대기</span><span style="font-weight:800;color:var(--wait-color);">'+wl.length+'PLT / '+wl.reduce(function(s,p){return s+p.totalBox;},0)+'BOX</span></div>'
-        +'<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span style="color:var(--muted);">✅출고</span><span style="font-weight:800;color:var(--ship-color);">'+sl.length+'PLT / '+sl.reduce(function(s,p){return s+p.totalBox;},0)+'BOX</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--muted);">⏳대기</span><span style="font-weight:800;color:var(--waiting);">'+wl.length+'PLT / '+wl.reduce(function(s,p){return s+p.totalBox;},0)+'BOX</span></div>'
+        +'<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span style="color:var(--muted);">✅출고</span><span style="font-weight:800;color:var(--shipped);">'+sl.length+'PLT / '+sl.reduce(function(s,p){return s+p.totalBox;},0)+'BOX</span></div>'
       +'</div>'
     +'</div>';
   });
@@ -834,16 +872,16 @@ async function manualDailyReset(){
       });
     });
     var record={date:today,savedAt:new Date().toISOString(),totalPlt:totalPlt,totalBox:totalBox,byFloor:byFloor,byCourier:byCourier,pallets:allShipped};
-    await fetch(FB+'/history/'+today+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)});
+    await fetch(FB_URL+'/history/'+today+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)});
     var empty={data:{},updatedAt:new Date().toISOString(),doneStatus:{}};
     ALL_FLOORS.forEach(function(f){empty.data[f]=[];});
     await Promise.all([
-      fetch(FB+'/waiting.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(empty)}),
-      fetch(FB+'/shipments.json',{method:'DELETE'}),
-      fetch(FB+'/notifications.json',{method:'DELETE'}),
-      fetch(FB+'/reports.json',{method:'DELETE'}),
+      fetch(FB_URL+'/waiting.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(empty)}),
+      fetch(FB_URL+'/shipments.json',{method:'DELETE'}),
+      fetch(FB_URL+'/notifications.json',{method:'DELETE'}),
+      fetch(FB_URL+'/reports.json',{method:'DELETE'}),
     ]);
-    await fetch(FB+'/reset_signal.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:today,resetAt:new Date().toISOString(),by:'출고팀PC'})});
+    await fetch(FB_URL+'/reset_signal.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:today,resetAt:new Date().toISOString(),by:'출고팀PC'})});
     alert('✅ '+today+' 일일 마감 완료!\n데이터 보관됨\n전체 앱 새 작업 시작');
     waiting={};shipments={};doneStatus={};notifications={};closingReports={};
     render();
@@ -866,7 +904,7 @@ function saveTestHistory(){
     });
   });
   var record={date:today,savedAt:new Date().toISOString(),totalPlt:totalPlt,totalBox:totalBox,byFloor:byFloor,byCourier:byCourier,pallets:allShipped};
-  fetch(FB+'/history/'+today+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)})
+  fetch(FB_URL+'/history/'+today+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)})
     .then(function(){alert('✅ 저장됨!');renderHistory();})
     .catch(function(e){alert('실패: '+e.message);});
 }
@@ -879,7 +917,7 @@ function renderHistory(){
   container.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted)">📅 로딩 중...</div>';
 
   // shallow=true로 날짜 키 목록만 먼저 가져오기
-  fetch(FB+'/history.json?shallow=true&t='+Date.now())
+  fetch(FB_URL+'/history.json?shallow=true&t='+Date.now())
     .then(function(r){return r.json();})
     .then(function(keys){
       if(!keys||typeof keys!=='object'||Object.keys(keys).length===0){
@@ -891,7 +929,7 @@ function renderHistory(){
       // 날짜별 상세 데이터 개별 fetch
       var dateKeys=Object.keys(keys).sort().reverse();
       return Promise.all(dateKeys.map(function(date){
-        return fetch(FB+'/history/'+date+'.json?t='+Date.now())
+        return fetch(FB_URL+'/history/'+date+'.json?t='+Date.now())
           .then(function(r){return r.json();})
           .then(function(rec){return {date:date,rec:rec};})
           .catch(function(){return {date:date,rec:null};});
@@ -924,8 +962,8 @@ function renderHistory(){
           ALL_FLOORS.forEach(function(f){
             var fd=rec.byFloor[f];if(!fd)return;
             var fc2=document.createElement('div');
-            fc2.style.cssText='background:var(--card2);border-radius:8px;padding:8px;text-align:center;border-top:3px solid '+FC[f]+';';
-            fc2.innerHTML='<div style="font-size:10px;font-weight:800;color:'+FC[f]+';">'+FN[f]+'</div><div style="font-size:16px;font-weight:900;margin:3px 0;">'+(fd.plt||0)+'PLT</div><div style="font-size:10px;color:var(--muted);">'+(fd.box||0)+'BOX</div><div style="font-size:9px;color:'+(fd.done?'var(--a3)':'var(--a2)')+';">'+(fd.done?'✅마감':'⏳미완')+'</div>';
+            fc2.style.cssText='background:var(--card2);border-radius:8px;padding:8px;text-align:center;border-top:3px solid '+FCOLORS[f]+';';
+            fc2.innerHTML='<div style="font-size:10px;font-weight:800;color:'+FCOLORS[f]+';">'+FN[f]+'</div><div style="font-size:16px;font-weight:900;margin:3px 0;">'+(fd.plt||0)+'PLT</div><div style="font-size:10px;color:var(--muted);">'+(fd.box||0)+'BOX</div><div style="font-size:9px;color:'+(fd.done?'var(--a3)':'var(--a2)')+';">'+(fd.done?'✅마감':'⏳미완')+'</div>';
             fg.appendChild(fc2);
           });
           body.appendChild(fg);
@@ -965,7 +1003,7 @@ function renderHistory(){
             var c2=cfg.couriers.find(function(x){return x.id===p.courierId;})||{name:p.courierName||'',color:'#555',icon:'📦'};
             (p.items||[]).forEach(function(it,ii){
               var row='<tr>';
-              if(ii===0){row+='<td rowspan="'+p.items.length+'" style="padding:5px 8px;border:1px solid var(--border);text-align:center;"><span style="background:'+FC[p.floor]+';color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;">'+(FN[p.floor]||p.floor)+'</span></td><td rowspan="'+p.items.length+'" style="padding:5px 8px;border:1px solid var(--border);text-align:center;font-weight:900;color:var(--a5);">No.'+p.pltNo+'</td><td rowspan="'+p.items.length+'" style="padding:5px 8px;border:1px solid var(--border);"><span style="background:'+c2.color+';color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700;">'+c2.icon+' '+c2.name+'</span></td>';}
+              if(ii===0){row+='<td rowspan="'+p.items.length+'" style="padding:5px 8px;border:1px solid var(--border);text-align:center;"><span style="background:'+FCOLORS[p.floor]+';color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;">'+(FN[p.floor]||p.floor)+'</span></td><td rowspan="'+p.items.length+'" style="padding:5px 8px;border:1px solid var(--border);text-align:center;font-weight:900;color:var(--a5);">No.'+p.pltNo+'</td><td rowspan="'+p.items.length+'" style="padding:5px 8px;border:1px solid var(--border);"><span style="background:'+c2.color+';color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700;">'+c2.icon+' '+c2.name+'</span></td>';}
               row+='<td style="padding:5px 8px;border:1px solid var(--border);">'+(it.pharma||'')+'</td><td style="padding:5px 8px;border:1px solid var(--border);text-align:center;font-weight:700;">'+(it.box||0)+'</td></tr>';
               tbl.innerHTML+=row;
             });
@@ -978,7 +1016,7 @@ function renderHistory(){
         var delBtn=document.createElement('button');
         delBtn.style.cssText='margin-top:10px;width:100%;background:rgba(239,68,68,.08);border:1.5px solid rgba(239,68,68,.2);color:var(--red);border-radius:8px;padding:7px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;';
         delBtn.textContent='🗑 '+date+' 데이터 삭제';
-        (function(dt){delBtn.addEventListener('click',function(){if(confirm(dt+' 삭제?')){fetch(FB+'/history/'+dt+'.json',{method:'DELETE'}).then(function(){renderHistory();});}});})(date);
+        (function(dt){delBtn.addEventListener('click',function(){if(confirm(dt+' 삭제?')){fetch(FB_URL+'/history/'+dt+'.json',{method:'DELETE'}).then(function(){renderHistory();});}});})(date);
         body.appendChild(delBtn);
         card.appendChild(body);
         wrap.appendChild(card);
