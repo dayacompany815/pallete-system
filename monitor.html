@@ -186,8 +186,6 @@ tfoot td{background:var(--card2);font-weight:800;}
 
 <div class="main">
   <div class="kpi-grid" id="kpiGrid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:20px;"></div>
-  <!-- 요약 -->
-  <div class="sum-grid" id="sumGrid"></div>
 
   <!-- 대기중 탭 -->
   <div class="tab-page active" id="page-waiting">
@@ -324,47 +322,16 @@ function renderCurrentTab(){
   else renderWaiting();
 }
 
-/* KPI 뱃지/sumGrid 업데이트 */
+/* 탭 뱃지 숫자 갱신 (요약카드는 renderKPI 하나만 사용) */
 function renderKPICards(){
-  var totalWait=0, totalWaitBox=0, totalShip=0, totalShipBox=0;
+  var totalWait=0, totalShip=0;
   ALL_FLOORS.forEach(function(f){
-    (waiting[f]||[]).forEach(function(p){ totalWait++; totalWaitBox+=p.totalBox||0; });
+    (waiting[f]||[]).forEach(function(){ totalWait++; });
   });
   Object.keys(shipments).forEach(function(k){
     var e=shipments[k];
-    if(e&&e.pallets) e.pallets.forEach(function(p){ totalShip++; totalShipBox+=p.totalBox||0; });
+    if(e&&e.pallets) e.pallets.forEach(function(){ totalShip++; });
   });
-  var doneCnt = ALL_FLOORS.filter(function(f){return doneStatus[f];}).length;
-
-  var cards = [
-    {icon:'⏳',label:'대기중',val:totalWait+'PLT',sub:totalWaitBox+'BOX',col:'var(--waiting)'},
-    {icon:'✅',label:'출고완료',val:totalShip+'PLT',sub:totalShipBox+'BOX',col:'var(--shipped)'},
-    {icon:'🏁',label:'마감완료',val:doneCnt+'층',sub:ALL_FLOORS.length+'층 중',col:'var(--a4)'},
-  ];
-  cfg.couriers.forEach(function(c){
-    var wp=0,wb=0,sp=0,sb=0;
-    ALL_FLOORS.forEach(function(f){
-      (waiting[f]||[]).forEach(function(p){if(p.courierId===c.id){wp++;wb+=p.totalBox||0;}});
-    });
-    Object.keys(shipments).forEach(function(k){
-      var e=shipments[k];
-      if(e&&e.pallets) e.pallets.forEach(function(p){if(p.courierId===c.id){sp++;sb+=p.totalBox||0;}});
-    });
-    cards.push({icon:c.icon,label:c.name,val:'대기'+wp+'/출고'+sp,sub:'BOX '+(wb+sb),col:c.color});
-  });
-
-  var html='';
-  cards.forEach(function(c){
-    html+='<div class="sum-card" style="border-top:3px solid '+c.col+'">'
-      +'<div class="sc-icon">'+c.icon+'</div>'
-      +'<div class="sc-label">'+c.label+'</div>'
-      +'<div class="sc-val" style="color:'+c.col+'">'+c.val+'</div>'
-      +'<div class="sc-sub">'+c.sub+'</div>'
-      +'</div>';
-  });
-  document.getElementById('sumGrid').innerHTML=html;
-
-  // 뱃지
   document.getElementById('waitingCntBadge').textContent=totalWait;
   document.getElementById('shippedCntBadge').textContent=totalShip;
 }
