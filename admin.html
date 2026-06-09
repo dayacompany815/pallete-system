@@ -122,6 +122,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','App
     <div class="live-dot"></div>
     <div class="hdr-time" id="hdrTime">--:--</div>
     <button class="refresh-fab" onclick="loadData()">🔄</button>
+    <button class="refresh-fab" style="background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.3);color:var(--a2)" onclick="manualResetAdmin()">초기화</button>
   </div>
 </div>
 
@@ -215,6 +216,7 @@ function init(){
   setInterval(loadData,10000);
   setInterval(checkResetSignalAdmin,10000);
   checkResetSignalAdmin();
+  checkAdminNewDay();
 }
 
 async function loadData(){
@@ -652,6 +654,57 @@ function renderPage4(){
     html+='</div></div>';
   });
   document.getElementById('page4').innerHTML=html;
+}
+
+/* ── 초기화 (이중 확인 + 신호 전파) ── */
+function manualResetAdmin(){
+  if(!confirm('오늘 업무를 마감하고 새 작업을 시작할까요?\n\n현재 데이터가 보관됩니다.')) return;
+  if(!confirm('⚠️ 실수 방지 재확인\n\n정말 전체 초기화할까요?\n모든 대기·출고·마감 데이터가 비워집니다.\n(모니터앱에서 복구 가능)')) return;
+  adminDailyReset(false);
+}
+
+async function adminDailyReset(silent){
+  var today=getDayKeyAdmin();
+  try{
+    var totalPlt=0,totalBox=0,byFloor={},byCourier={},allShipped=[];
+    ALL_FLOORS.forEach(function(f){
+      var wl=waiting[f]||[];
+      var sl=[];Object.keys(shipments||{}).forEach(function(k){var e=shipments[k];if(e&&e.floor===f&&e.pallets){sl=sl.concat(e.pallets);allShipped=allShipped.concat(e.pallets.map(function(p){return Object.assign({},p,{floor:f});}));}});
+      var all=wl.concat(sl);
+      byFloor[f]={plt:all.length,box:all.reduce(function(s,p){return s+(p.totalBox||0);},0),done:doneStatus[f]||false};
+      all.forEach(function(p){ if(!byCourier[p.courierId])byCourier[p.courierId]={plt:0,box:0}; byCourier[p.courierId].plt++; byCourier[p.courierId].box+=p.totalBox||0; totalPlt++; totalBox+=p.totalBox||0; });
+    });
+    var record={date:today,savedAt:new Date().toISOString(),totalPlt:totalPlt,totalBox:totalBox,byFloor:byFloor,byCourier:byCourier,pallets:allShipped};
+    await fetch(FB_URL+'/history/'+today+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)});
+    var empty={data:{},updatedAt:new Date().toISOString(),doneStatus:{}};
+    ALL_FLOORS.forEach(function(f){empty.data[f]=[];});
+    await Promise.all([
+      fetch(FB_URL+'/waiting.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(empty)}),
+      fetch(FB_URL+'/shipments.json',{method:'DELETE'}),
+      fetch(FB_URL+'/notifications.json',{method:'DELETE'}),
+      fetch(FB_URL+'/reports.json',{method:'DELETE'})
+    ]);
+    var resetAt=new Date().toISOString();
+    await fetch(FB_URL+'/reset_signal.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:today,resetAt:resetAt,by:'관리자'})});
+    lsSet('plt_admin_last_reset',resetAt); lsSet('admin_last_reset',resetAt); lsSet('plt_admin_last_day',today);
+    waiting={};shipments={};doneStatus={};notifications={};reports={};
+    ALL_FLOORS.forEach(function(f){waiting[f]=[];});
+    render();
+    if(!silent) alert('✅ '+today+' 마감 완료!\n데이터 보관됨\n전체 앱 새 작업 시작');
+  }catch(e){ alert('오류: '+e.message); }
+}
+
+/* ── 날짜 변경 시 첫 실행 새 작업 확인 ── */
+var _adminNewDayAsked=false;
+function checkAdminNewDay(){
+  var today=getDayKeyAdmin(), lastDay=lsGet('plt_admin_last_day');
+  if(!lastDay){ lsSet('plt_admin_last_day',today); return; }
+  if(lastDay!==today && !_adminNewDayAsked){
+    _adminNewDayAsked=true; lsSet('plt_admin_last_day',today);
+    if(confirm('📅 날짜가 바뀌었습니다.\n('+lastDay+' → '+today+')\n\n새로운 작업을 시작하시겠습니까?\n어제 데이터는 보관됩니다.')){
+      if(confirm('⚠️ 실수 방지 재확인\n정말 전체 초기화할까요?')) adminDailyReset(false);
+    }
+  }
 }
 
 document.getElementById('adminDate').textContent=getTodayStr();

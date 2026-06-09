@@ -248,6 +248,7 @@ function pad(n){return String(n).padStart(2,'0');}
 
 /* 스토리지 */
 function lsGet(k){try{return localStorage.getItem(k);}catch(e){return null;}}
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}}
 
 function loadCfgLocal(){
   var s=lsGet('plt_cfg');
@@ -700,7 +701,11 @@ function renderClosing(){
   // 전체 합계 (마감된 층 기준)
   var gPlt=0,gBox=0;
   floors.forEach(function(f){var r=byFloor[f];var pl=r.pallets;gPlt+=pl?pl.length:(r.totalPlt||0);gBox+=pl?pl.reduce(function(s,p){return s+(p.totalBox||0);},0):(r.totalBox||0);});
-  var html='<div class="tbl-title">🏁 마감 완료 현황 <span class="sec-cnt" style="color:var(--shipped);font-weight:800;">'+floors.length+'/'+ALL_FLOORS.length+'개 층 마감 · '+gPlt+'PLT · '+gBox+'BOX</span></div>';
+  var html='<div style="display:flex;gap:8px;justify-content:flex-end;margin-bottom:10px;">'
+    +'<button onclick="openRecovery()" style="background:rgba(59,158,255,.1);border:1.5px solid rgba(59,158,255,.35);color:#2d6cdf;border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;">🛟 복구</button>'
+    +'<button onclick="manualDailyReset()" style="background:rgba(249,115,22,.1);border:1.5px solid rgba(249,115,22,.35);color:var(--a2);border-radius:8px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;">🔄 마감 후 초기화</button>'
+    +'</div>';
+  html+='<div class="tbl-title">🏁 마감 완료 현황 <span class="sec-cnt" style="color:var(--shipped);font-weight:800;">'+floors.length+'/'+ALL_FLOORS.length+'개 층 마감 · '+gPlt+'PLT · '+gBox+'BOX</span></div>';
 
   // 층별 마감 상태 한눈에 (마감완료 / 진행중)
   html+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;">';
@@ -930,8 +935,13 @@ function renderStatus(){
 /* ── 일일마감 ── */
 function getDayKey(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
 
-async function manualDailyReset(){
+function manualDailyReset(){
   if(!confirm('오늘 업무를 마감하고 새 작업을 시작할까요?\n\n✅ 상세 데이터 보관 후 전체 초기화')) return;
+  if(!confirm('⚠️ 실수 방지 재확인\n\n정말 전체 초기화할까요?\n모든 대기·출고·마감 데이터가 비워집니다.\n(자동저장 백업에서 복구 가능)')) return;
+  doDailyReset();
+}
+
+async function doDailyReset(){
   var today=getDayKey();
   try{
     var totalPlt=0,totalBox=0,byFloor={},byCourier={},allShipped=[];
@@ -948,6 +958,8 @@ async function manualDailyReset(){
     });
     var record={date:today,savedAt:new Date().toISOString(),totalPlt:totalPlt,totalBox:totalBox,byFloor:byFloor,byCourier:byCourier,pallets:allShipped};
     await fetch(FB_URL+'/history/'+today+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(record)});
+    // 초기화 직전 상태를 백업에 저장(복구용)
+    try{ var _hr=String(new Date().getHours()).padStart(2,'0'); await fetch(FB_URL+'/backups/'+today+'/'+_hr+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshotData())}); }catch(_e){}
     var empty={data:{},updatedAt:new Date().toISOString(),doneStatus:{}};
     ALL_FLOORS.forEach(function(f){empty.data[f]=[];});
     await Promise.all([
@@ -957,6 +969,7 @@ async function manualDailyReset(){
       fetch(FB_URL+'/reports.json',{method:'DELETE'}),
     ]);
     await fetch(FB_URL+'/reset_signal.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:today,resetAt:new Date().toISOString(),by:'출고팀PC'})});
+    lsSet('plt_mon_last_day', today);
     alert('✅ '+today+' 일일 마감 완료!\n데이터 보관됨\n전체 앱 새 작업 시작');
     waiting={};shipments={};doneStatus={};notifications={};closingReports={};reports={};
     render();
@@ -1104,10 +1117,111 @@ function renderHistory(){
     });
 }
 
+/* ── 시간별 자동저장(복구용) ── */
+function snapshotData(){
+  return {savedAt:new Date().toISOString(), waiting:waiting, doneStatus:doneStatus, shipments:shipments, notifications:notifications, reports:reports};
+}
+function hasLiveData(){
+  if(ALL_FLOORS.some(function(f){return (waiting[f]||[]).length>0;})) return true;
+  return Object.keys(shipments||{}).length>0;
+}
+async function autosaveBackup(){
+  if(!hasLiveData()) return;
+  var d=new Date(); var dayKey=getDayKey(); var hour=String(d.getHours()).padStart(2,'0');
+  try{
+    await fetch(FB_URL+'/backups/'+dayKey+'/'+hour+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(snapshotData())});
+    lsSet('plt_mon_autosave_hour', dayKey+'_'+hour);
+    pruneBackups();
+  }catch(e){}
+}
+function checkAutosave(){
+  var d=new Date(); var hk=getDayKey()+'_'+String(d.getHours()).padStart(2,'0');
+  if(lsGet('plt_mon_autosave_hour')!==hk) autosaveBackup();
+}
+async function pruneBackups(){
+  try{
+    var r=await fetch(FB_URL+'/backups.json?shallow=true');
+    var keys=await r.json(); if(!keys) return;
+    var today=getDayKey();
+    var yd=new Date(Date.now()-86400000); var yday=yd.getFullYear()+'-'+String(yd.getMonth()+1).padStart(2,'0')+'-'+String(yd.getDate()).padStart(2,'0');
+    Object.keys(keys).forEach(function(k){ if(k!==today&&k!==yday) fetch(FB_URL+'/backups/'+k+'.json',{method:'DELETE'}); });
+  }catch(e){}
+}
+
+/* ── 복구 UI ── */
+async function openRecovery(){
+  var ov=document.getElementById('recoveryOverlay'), box=document.getElementById('recoveryModal');
+  box.innerHTML='<div style="padding:24px;text-align:center;color:var(--muted)">🛟 백업 불러오는 중...</div>';
+  ov.classList.add('show');
+  try{
+    var r=await fetch(FB_URL+'/backups.json?t='+Date.now());
+    var data=await r.json();
+    var items=[];
+    if(data) Object.keys(data).forEach(function(day){ var hrs=data[day]; if(!hrs)return; Object.keys(hrs).forEach(function(h){ items.push({day:day,hour:h,snap:hrs[h]}); }); });
+    items.sort(function(a,b){ return (b.day+b.hour).localeCompare(a.day+a.hour); });
+    var html='<div style="padding:18px;max-height:75vh;overflow:auto;">'
+      +'<div style="font-size:17px;font-weight:900;margin-bottom:4px;">🛟 데이터 복구</div>'
+      +'<div style="font-size:12px;color:var(--muted);margin-bottom:16px;">시간별 자동저장 지점에서 복구합니다. 현재 데이터를 덮어씁니다.</div>';
+    if(items.length===0){
+      html+='<div style="text-align:center;padding:30px;color:var(--muted);">저장된 백업이 없습니다.<br><small>매시간 자동저장됩니다.</small></div>';
+    } else {
+      items.forEach(function(it){
+        var s=it.snap||{}; var wc=0,sc=0;
+        ALL_FLOORS.forEach(function(f){ wc+=((s.waiting||{})[f]||[]).length; });
+        Object.keys(s.shipments||{}).forEach(function(k){ var e=s.shipments[k]; if(e&&e.pallets) sc+=e.pallets.length; });
+        html+='<div style="display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;padding:11px 13px;margin-bottom:8px;">'
+          +'<div style="flex:1;"><div style="font-weight:800;font-size:13px;">📅 '+it.day+' '+it.hour+':00</div><div style="font-size:11px;color:var(--muted);">⏳대기 '+wc+'PLT · ✅출고 '+sc+'PLT</div></div>'
+          +'<button onclick="restoreBackup(\''+it.day+'\',\''+it.hour+'\')" style="background:rgba(3,199,90,.12);border:1.5px solid rgba(3,199,90,.35);color:var(--a1);border-radius:7px;padding:7px 14px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;">복구</button>'
+          +'</div>';
+      });
+    }
+    html+='<button onclick="closeRecovery()" style="width:100%;margin-top:8px;background:#eee;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">닫기</button></div>';
+    box.innerHTML=html;
+  }catch(e){ box.innerHTML='<div style="padding:24px;text-align:center;color:var(--red)">로드 실패: '+e.message+'</div>'; }
+}
+function closeRecovery(){ document.getElementById('recoveryOverlay').classList.remove('show'); }
+async function restoreBackup(day,hour){
+  if(!confirm('📅 '+day+' '+hour+':00 시점으로 복구할까요?\n현재 데이터를 덮어씁니다.')) return;
+  if(!confirm('⚠️ 실수 방지 재확인\n정말 복구할까요? 현재 데이터는 사라집니다.')) return;
+  try{
+    var r=await fetch(FB_URL+'/backups/'+day+'/'+hour+'.json');
+    var s=await r.json();
+    if(!s){ alert('백업을 찾을 수 없습니다'); return; }
+    var wt={data:s.waiting||{},doneStatus:s.doneStatus||{},updatedAt:new Date().toISOString()};
+    await Promise.all([
+      fetch(FB_URL+'/waiting.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(wt)}),
+      fetch(FB_URL+'/shipments.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(s.shipments||{})}),
+      fetch(FB_URL+'/notifications.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(s.notifications||{})}),
+      fetch(FB_URL+'/reports.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(s.reports||{})})
+    ]);
+    closeRecovery();
+    alert('✅ '+day+' '+hour+':00 시점으로 복구됐습니다.');
+    loadData();
+  }catch(e){ alert('복구 실패: '+e.message); }
+}
+
+/* ── 날짜 변경 시 첫 실행 새 작업 확인 ── */
+var _newDayAsked=false;
+function checkMonitorNewDay(){
+  var today=getDayKey(), lastDay=lsGet('plt_mon_last_day');
+  if(!lastDay){ lsSet('plt_mon_last_day', today); return; }
+  if(lastDay!==today && !_newDayAsked){
+    _newDayAsked=true;
+    lsSet('plt_mon_last_day', today);
+    if(confirm('📅 날짜가 바뀌었습니다.\n('+lastDay+' → '+today+')\n\n새로운 작업을 시작하시겠습니까?\n어제 데이터는 보관됩니다.')){
+      if(confirm('⚠️ 실수 방지 재확인\n정말 전체 초기화할까요?')) doDailyReset();
+    }
+  }
+}
+
 loadData();
 setInterval(loadData, 10000);
+checkMonitorNewDay();
+checkAutosave();
+setInterval(checkAutosave, 60000);
 </script>
 <div class="overlay" id="reportOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="report-modal" id="reportModal"></div></div>
+<div class="overlay" id="recoveryOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="report-modal" id="recoveryModal"></div></div>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>

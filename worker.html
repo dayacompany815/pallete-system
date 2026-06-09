@@ -295,6 +295,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans
     <div class="hdr-r">
       <div class="live"></div>
       <div class="hdr-time" id="hdrTime">--:--</div>
+      <button class="logout-btn" id="dailyResetBtn" style="display:none;background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.3);color:var(--a2)" onclick="manualDailyReset()">🔄 초기화</button>
       <button class="logout-btn" id="logoutBtn">로그아웃</button>
     </div>
   </div>
@@ -463,8 +464,13 @@ function checkDailyReset(){
   var today = getDayKey();
   var lastDay = lsGet('plt_last_day');
   if(lastDay && lastDay !== today){
-    // 날짜가 바뀜 → 자동 보관 후 초기화
-    archiveAndReset(lastDay, true);
+    // 날짜가 바뀜 → 첫 로그인 시 새 작업 시작 여부 확인
+    if(confirm('📅 날짜가 바뀌었습니다.\n('+lastDay+' → '+today+')\n\n새로운 작업을 시작하시겠습니까?\n어제 데이터는 자동 보관됩니다.')){
+      archiveAndReset(lastDay, false);
+    } else {
+      // 기존 데이터 유지 (다시 묻지 않음)
+      lsSet('plt_last_day', today);
+    }
   } else if(!lastDay) {
     lsSet('plt_last_day', today);
   }
@@ -500,6 +506,11 @@ async function archiveAndReset(archiveDate, auto){
     await fetch(FB_URL+'/waiting.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(emptyWaiting)});
     await fetch(FB_URL+'/shipments.json',{method:'DELETE'});
     await fetch(FB_URL+'/notifications.json',{method:'DELETE'});
+    await fetch(FB_URL+'/reports.json',{method:'DELETE'});
+    // 다른 앱(모니터/관리자)도 초기화되도록 신호 전파
+    var resetAt=new Date().toISOString();
+    await fetch(FB_URL+'/reset_signal.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:getDayKey(),resetAt:resetAt,by:(session&&session.name)||'작업자'})});
+    lsSet('plt_last_reset', resetAt); // 자기 신호 재감지 방지
   } catch(e) {}
 }
 
@@ -522,6 +533,7 @@ function buildDailySummary(){
 
 function manualDailyReset(){
   if(!confirm('오늘 업무를 마감하고 새 작업을 시작할까요?\n\n현재 데이터가 보관됩니다.')) return;
+  if(!confirm('⚠️ 실수 방지 재확인\n\n정말 전체 초기화할까요?\n모든 대기·출고 데이터가 비워집니다.\n(모니터앱에서 복구 가능)')) return;
   archiveAndReset(getDayKey(), false);
 }
 
