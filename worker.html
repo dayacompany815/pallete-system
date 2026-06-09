@@ -387,6 +387,20 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans
   </div>
 </div>
 
+<!-- 엘리베이터 선택 팝업 -->
+<div class="overlay" id="elevOverlay">
+  <div class="popup">
+    <div class="pop-icon">🛗</div>
+    <div class="pop-title">어느 엘리베이터로 보낼까요?</div>
+    <div class="pop-sub" id="elevSub"></div>
+    <div class="pop-btns">
+      <button class="pop-btn" id="elevOfficeBtn" style="background:linear-gradient(135deg,#03C75A,#02a94d);color:#fff;">🏢 사무 엘베</button>
+      <button class="pop-btn" id="elevInboundBtn" style="background:linear-gradient(135deg,#2d6cdf,#1d4ed8);color:#fff;">📥 입고 엘베</button>
+      <button class="pop-btn pop-cancel" id="elevCancelBtn">취소</button>
+    </div>
+  </div>
+</div>
+
 <!-- 보고서 팝업 -->
 <div class="overlay" id="reportOverlay">
   <div class="report-pop">
@@ -408,7 +422,9 @@ var FB_URL = 'https://pallete-system-default-rtdb.asia-southeast1.firebasedataba
 var ALL_FLOORS = ['B1','1F','3F','4F','5F'];
 var FN = {'B1':'지하1층','1F':'1층','3F':'3층','4F':'4층','5F':'5층'};
 var FCOLORS = {'B1':'#3b9eff','1F':'#a78bfa','3F':'#f97316','4F':'#2ecc71','5F':'#ffd600'};
-var PC = ['#3b9eff','#a78bfa','#f97316','#2ecc71','#ffd600','#ff6b9d','#06b6d4','#84cc16','#ef4444','#14b8a6'];
+var ELEVATORS = {office:'사무 엘베', inbound:'입고 엘베'};
+var ELEV_EMOJI = {office:'🏢', inbound:'📥'};
+var PC =['#3b9eff','#a78bfa','#f97316','#2ecc71','#ffd600','#ff6b9d','#06b6d4','#84cc16','#ef4444','#14b8a6'];
 var PHARMA_MAP = {'비씨월드제약':'yongma','구주제약':'yongma','부광약품':'cj'};
 
 var cfg = {
@@ -617,14 +633,16 @@ function loadCfgFromFB(){
 }
 
 /* 슬랙 출고 알림 (Incoming Webhook) */
-function sendSlackShipment(mov){
+function sendSlackShipment(mov, elevator){
   var url = cfg.slackWebhook;
   if(!url || !/^https:\/\/hooks\.slack\.com\//.test(url)) return;
   var totalBox = mov.reduce(function(s,p){ return s + (p.totalBox||0); }, 0);
   var now = new Date();
   var hhmm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  var elevLine = ELEVATORS[elevator] ? ('🛗 ' + (ELEV_EMOJI[elevator]||'') + ' ' + ELEVATORS[elevator] + '\n') : '';
   var text = '🚀 *출고 알림 · ' + (FN[currentFloor]||currentFloor) + '*\n'
     + '👷 작업자: ' + (session && session.name ? session.name : '-') + '\n'
+    + elevLine
     + '📦 파레트: ' + mov.length + '개 · ' + totalBox + ' BOX\n'
     + '🕐 ' + hhmm;
   try {
@@ -1260,7 +1278,15 @@ function updateWSelBar(){
   document.getElementById('sendBtn').disabled = cnt === 0;
 }
 
-function sendPallets(){
+function openElevatorChoice(){
+  var ids = Object.keys(wSel);
+  if(ids.length === 0) return;
+  document.getElementById('elevSub').textContent = ids.length + '개 파레트를 출고 처리합니다.';
+  showOverlay('elevOverlay');
+}
+
+function sendPallets(elevator){
+  hideOverlay('elevOverlay');
   var ids = Object.keys(wSel);
   if(ids.length === 0) return;
   var rem = [], mov = [];
@@ -1279,7 +1305,9 @@ function sendPallets(){
     worker: session.name,
     sentAt: new Date().toISOString(),
     pallets: mov,
-    type: 'shipment'
+    type: 'shipment',
+    elevator: elevator || '',
+    elevatorName: ELEVATORS[elevator] || ''
   };
   fetch(FB_URL + '/shipments/' + currentFloor + '_' + Date.now() + '.json', {
     method: 'PUT',
@@ -1287,7 +1315,7 @@ function sendPallets(){
     body: JSON.stringify(payload)
   }).catch(function(){});
 
-  sendSlackShipment(mov);
+  sendSlackShipment(mov, elevator);
 
   syncWaitingToFB();
   saveState();
@@ -1295,7 +1323,7 @@ function sendPallets(){
   renderAllFloors();
   updateBadges();
   updatePltNo();
-  showToast('🚀 ' + mov.length + '개 출고팀에 전송!');
+  showToast('🚀 ' + mov.length + '개 출고!\n' + (ELEV_EMOJI[elevator]||'') + ' ' + (ELEVATORS[elevator]||'') + ' 전송');
 
   if((waiting[currentFloor]||[]).length === 0){
     setTimeout(checkClose, 600);
@@ -1695,7 +1723,10 @@ window.addEventListener('DOMContentLoaded', function(){
   document.getElementById('bn-output').addEventListener('click', function(){ goTab('output'); });
   var abi=document.getElementById('approveBtnInner');if(abi)abi.addEventListener('click', approveInput);
   var fab=document.getElementById('floatApproveBtn');if(fab)fab.addEventListener('click', approveInput);
-  document.getElementById('sendBtn').addEventListener('click', sendPallets);
+  document.getElementById('sendBtn').addEventListener('click', openElevatorChoice);
+  document.getElementById('elevOfficeBtn').addEventListener('click', function(){ sendPallets('office'); });
+  document.getElementById('elevInboundBtn').addEventListener('click', function(){ sendPallets('inbound'); });
+  document.getElementById('elevCancelBtn').addEventListener('click', function(){ hideOverlay('elevOverlay'); });
   var seb=document.getElementById('sendExpectBtn');if(seb)seb.addEventListener('click', sendExpectData);
   var sab=document.getElementById('selAllBtn');if(sab)sab.addEventListener('click', selectAllWaiting);
 

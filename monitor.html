@@ -228,6 +228,9 @@ var FB_URL = 'https://pallete-system-default-rtdb.asia-southeast1.firebasedataba
 var ALL_FLOORS = ['B1','1F','3F','4F','5F'];
 var FN = {'B1':'지하1층','1F':'1층','3F':'3층','4F':'4층','5F':'5층'};
 var FCOLORS = {'B1':'#3b9eff','1F':'#a78bfa','3F':'#f97316','4F':'#2ecc71','5F':'#ffd600'};
+var ELEVATORS = {office:'사무 엘베', inbound:'입고 엘베'};
+var ELEV_EMOJI = {office:'🏢', inbound:'📥'};
+var ELEV_COLOR = {office:'#03C75A', inbound:'#2d6cdf'};
 var DC = [
   {id:'koryo',name:'고려택배',icon:'📦',color:'#3b9eff'},
   {id:'hanjin',name:'한진',icon:'🚚',color:'#a78bfa'},
@@ -398,12 +401,21 @@ function makePltCard(p, status, fbKey){
   top.appendChild(no); top.appendChild(cTag); top.appendChild(stTag);
   card.appendChild(top);
 
-  // 층 태그 (출고완료에만)
+  // 층 + 엘베 태그 (출고완료에만)
   if(isShipped && p.floor){
+    var tagRow = document.createElement('div');
+    tagRow.style.cssText='display:flex;gap:0;align-items:stretch;';
     var flTag = document.createElement('div');
-    flTag.style.cssText='padding:2px 9px;font-size:9px;font-weight:700;color:#fff;background:'+FCOLORS[p.floor]+';';
+    flTag.style.cssText='flex:1;padding:2px 9px;font-size:9px;font-weight:700;color:#fff;background:'+FCOLORS[p.floor]+';';
     flTag.textContent = FN[p.floor]||p.floor;
-    card.appendChild(flTag);
+    tagRow.appendChild(flTag);
+    if(ELEVATORS[p.elevator]){
+      var evTag = document.createElement('div');
+      evTag.style.cssText='padding:2px 9px;font-size:9px;font-weight:800;color:#fff;background:'+(ELEV_COLOR[p.elevator]||'#555')+';';
+      evTag.textContent = (ELEV_EMOJI[p.elevator]||'🛗')+' '+ELEVATORS[p.elevator];
+      tagRow.appendChild(evTag);
+    }
+    card.appendChild(tagRow);
   }
 
   // SVG
@@ -475,7 +487,7 @@ function renderShipped(){
     if(!entry||!entry.pallets) return;
     if(floorFilter!=='all'&&entry.floor!==floorFilter) return;
     entry.pallets.forEach(function(p){
-      allPallets.push(Object.assign({},p,{floor:entry.floor, fbKey:key, sentAt:entry.sentAt, worker:entry.worker}));
+      allPallets.push(Object.assign({},p,{floor:entry.floor, fbKey:key, sentAt:entry.sentAt, worker:entry.worker, elevator:entry.elevator}));
     });
   });
   allPallets.sort(function(a,b){ return ALL_FLOORS.indexOf(a.floor)-ALL_FLOORS.indexOf(b.floor)||a.pltNo-b.pltNo; });
@@ -518,14 +530,18 @@ function makeTextTable(pallets, status){
       rows+='<td style="text-align:center;font-weight:700">'+it.box+'</td>';
       if(i===0){
         rows+='<td rowspan="'+p.items.length+'" style="text-align:center;font-weight:900;color:'+(isShipped?'var(--shipped)':'var(--waiting)')+'">'+p.totalBox+'</td>';
-        if(isShipped) rows+='<td rowspan="'+p.items.length+'" style="text-align:center;font-size:10px;color:var(--muted)">'+ts+'</td>';
+        if(isShipped){
+          rows+='<td rowspan="'+p.items.length+'" style="text-align:center;font-size:10px;color:var(--muted)">'+ts+'</td>';
+          var ev = ELEVATORS[p.elevator] ? '<span style="background:'+(ELEV_COLOR[p.elevator]||'#555')+';color:#fff;border-radius:5px;padding:2px 6px;font-size:10px;font-weight:800">'+(ELEV_EMOJI[p.elevator]||'🛗')+' '+ELEVATORS[p.elevator]+'</span>' : '<span style="color:var(--muted)">-</span>';
+          rows+='<td rowspan="'+p.items.length+'" style="text-align:center">'+ev+'</td>';
+        }
       }
       rows+='</tr>';
       totBox+=it.box;
     });
     totBox=0;
   });
-  var cols = isShipped ? '<th>층</th><th>PLT</th><th>택배사</th><th>상태</th><th>제약사</th><th>BOX</th><th>총BOX</th><th>시간</th>'
+  var cols = isShipped ? '<th>층</th><th>PLT</th><th>택배사</th><th>상태</th><th>제약사</th><th>BOX</th><th>총BOX</th><th>시간</th><th>엘베</th>'
                        : '<th>층</th><th>PLT</th><th>택배사</th><th>상태</th><th>제약사</th><th>BOX</th><th>총BOX</th>';
   return '<div class="tbl-wrap"><table><thead><tr>'+cols+'</tr></thead><tbody>'+rows+'</tbody></table></div>';
 }
