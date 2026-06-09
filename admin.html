@@ -45,7 +45,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','App
 /* 요약 */
 .big-card{background:linear-gradient(135deg,#E8F5EC,#EEF9F1);border:1px solid rgba(3,199,90,.22);border-radius:14px;padding:13px;margin-bottom:10px;position:relative;overflow:hidden;}
 .big-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--a1),var(--a4),var(--a6));}
-.big-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;}
+.big-grid{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;}
 .bgn{text-align:center;}
 .bgn-lbl{font-size:9px;color:var(--muted);font-weight:700;}
 .bgn-val{font-size:22px;font-weight:900;letter-spacing:-1px;}
@@ -166,6 +166,10 @@ var DC = [{id:'koryo',name:'고려택배',icon:'📦',color:'#3b9eff'},{id:'hanj
 var DP = ['구주제약','비씨월드제약','부광약품','대우제약','조아제약','동구바이오제약','삼천당제약','안국약품','한국파마','국제약품','아주약품','진양제약','매넬티제약','팜젠사이언스','경동제약','한국휴텍스제약','경동약품','에리슨제약'];
 
 var waiting={}, doneStatus={}, notifications={};
+var shipments={}, reports={};
+var ELEVATORS={office:'사무 엘베', inbound:'입고 엘베'};
+var ELEV_EMOJI={office:'🏢', inbound:'📥'};
+var ELEV_COLOR={office:'#03C75A', inbound:'#2d6cdf'};
 var cfg={couriers:DC, pharmas:DP};
 var curTab=0, clockTimer=null;
 
@@ -189,7 +193,7 @@ function checkResetSignalAdmin(){
       lsSet(key,d.resetAt);
       if(d.date===getDayKeyAdmin()){
         // 관리자앱 데이터 초기화
-        waiting={};doneStatus={};
+        waiting={};doneStatus={};shipments={};reports={};notifications={};
         ALL_FLOORS.forEach(function(f){waiting[f]=[];});
         render();
         var el=document.getElementById('hdrSub');
@@ -222,7 +226,7 @@ async function loadData(){
         var lastReset=lsGet('plt_admin_last_reset');
         if(lastReset!==sig.resetAt){
           lsSet('plt_admin_last_reset',sig.resetAt);
-          waiting={};doneStatus={};notifications={};
+          waiting={};doneStatus={};notifications={};shipments={};reports={};
           ALL_FLOORS.forEach(function(f){waiting[f]=[];});
           render();
           document.getElementById('hdrSub').textContent='🔄 초기화됨 · 새 작업 시작';
@@ -235,6 +239,13 @@ async function loadData(){
     var r2=await fetch(FB_URL+'/notifications.json');
     var d2=await r2.json();
     if(d2)notifications=d2||{};
+    // 출고완료 + 마감 보고서 (모니터와 동일 데이터)
+    var r3=await fetch(FB_URL+'/shipments.json');
+    var d3=await r3.json();
+    shipments=d3||{};
+    var r4=await fetch(FB_URL+'/reports.json');
+    var d4=await r4.json();
+    reports=d4||{};
     var now=new Date();
     document.getElementById('hdrSub').textContent=now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0')+':'+now.getSeconds().toString().padStart(2,'0')+' 업데이트';
   }catch(e){
@@ -259,6 +270,21 @@ function sumAll(filterFloor,filterCourier){
   ALL_FLOORS.forEach(function(f){
     if(filterFloor&&f!==filterFloor)return;
     (waiting[f]||[]).forEach(function(p){
+      if(filterCourier&&p.courierId!==filterCourier)return;
+      plt++;box+=p.totalBox||0;
+    });
+  });
+  return {plt:plt,box:box};
+}
+
+// 출고완료(shipments) 합계 — 모니터 KPI와 동일 기준
+function sumShipped(filterFloor,filterCourier){
+  var plt=0,box=0;
+  Object.keys(shipments||{}).forEach(function(k){
+    var e=shipments[k];
+    if(!e||!e.pallets)return;
+    if(filterFloor&&e.floor!==filterFloor)return;
+    e.pallets.forEach(function(p){
       if(filterCourier&&p.courierId!==filterCourier)return;
       plt++;box+=p.totalBox||0;
     });
@@ -400,14 +426,16 @@ function renderPage6(){
 
 function renderPage0(){
   var g=sumAll();
+  var s=sumShipped();
   var doneCnt=ALL_FLOORS.filter(function(f){return doneStatus[f];}).length;
   var now=new Date();
   var html='<div class="big-card">'
     +'<div style="font-size:10px;color:var(--muted);font-weight:700;margin-bottom:8px">📦 전층 합계 · '+(now.getMonth()+1)+'월'+now.getDate()+'일</div>'
     +'<div class="big-grid">'
-      +'<div class="bgn"><div class="bgn-lbl">총 파레트</div><div class="bgn-val" style="color:var(--a1)">'+g.plt+'</div></div>'
-      +'<div class="bgn"><div class="bgn-lbl">총 BOX</div><div class="bgn-val" style="color:var(--a3)">'+g.box+'</div></div>'
-      +'<div class="bgn"><div class="bgn-lbl">마감 층</div><div class="bgn-val" style="color:var(--a3)">'+doneCnt+'</div></div>'
+      +'<div class="bgn"><div class="bgn-lbl">⏳ 대기</div><div class="bgn-val" style="color:var(--a5)">'+g.plt+'</div><div style="font-size:9px;color:var(--muted)">'+g.box+'BOX</div></div>'
+      +'<div class="bgn"><div class="bgn-lbl">✅ 출고완료</div><div class="bgn-val" style="color:var(--a3)">'+s.plt+'</div><div style="font-size:9px;color:var(--muted)">'+s.box+'BOX</div></div>'
+      +'<div class="bgn"><div class="bgn-lbl">📦 총 BOX</div><div class="bgn-val" style="color:var(--a1)">'+(g.box+s.box)+'</div><div style="font-size:9px;color:var(--muted)">대기+출고</div></div>'
+      +'<div class="bgn"><div class="bgn-lbl">🏁 마감 층</div><div class="bgn-val" style="color:var(--a3)">'+doneCnt+'/'+ALL_FLOORS.length+'</div></div>'
     +'</div></div>';
 
   // 마감 알림
@@ -432,17 +460,22 @@ function renderPage0(){
     html+='</div>';
   }
 
-  // 택배사별 요약
+  // 택배사별 요약 (대기 + 출고완료)
   var hasAny=false;
   cfg.couriers.forEach(function(c){
     var cs=sumAll(null,c.id);
-    if(cs.plt===0)return;
+    var ss=sumShipped(null,c.id);
+    if(cs.plt===0&&ss.plt===0)return;
     hasAny=true;
     html+='<div class="card">'
       +'<div class="card-hdr">'
         +'<div class="c-bar" style="background:'+c.color+'"></div>'
         +'<div class="c-name">'+c.icon+' '+c.name+'</div>'
-        +'<div class="c-total"><div class="c-plt" style="color:'+c.color+'">'+cs.plt+'<span style="font-size:9px;color:var(--muted)">PLT</span></div><div class="c-box">'+cs.box+'BOX</div></div>'
+        +'<div class="c-total" style="display:flex;gap:10px;align-items:center;">'
+          +'<div style="text-align:center;"><div style="font-size:9px;color:var(--a5);font-weight:700;">⏳대기</div><div class="c-plt" style="color:var(--a5)">'+cs.plt+'</div></div>'
+          +'<div style="text-align:center;"><div style="font-size:9px;color:var(--a3);font-weight:700;">✅출고</div><div class="c-plt" style="color:var(--a3)">'+ss.plt+'</div></div>'
+          +'<div class="c-box">'+(cs.box+ss.box)+'BOX</div>'
+        +'</div>'
       +'</div>'
       +'<div class="card-body">';
     var allPallets=[];
@@ -460,6 +493,7 @@ function renderPage0(){
         +'<div style="text-align:right;flex-shrink:0;"><div class="pr-box">'+p.totalBox+'BOX</div></div>'
       +'</div>';
     });
+    if(allPallets.length===0) html+='<div style="text-align:center;padding:10px;color:var(--a3);font-size:11px;font-weight:700;">✅ 대기 없음 · 전량 출고완료 ('+ss.plt+'PLT)</div>';
     html+='</div></div>';
   });
   if(!hasAny) html+='<div class="empty"><div class="empty-icon">📭</div>대기 중인 파레트가 없습니다</div>';
