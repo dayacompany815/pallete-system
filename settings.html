@@ -1,0 +1,1126 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>⚙️ 파레트 통합 설정관리</title>
+<style>
+:root{
+  --bg:#F2F4F6;--card:#FFFFFF;--card2:#F9FAFB;--border:#E5E8EB;
+  --text:#1A1A1A;--muted:#8C9EAA;
+  --a1:#03C75A;--a2:#FF6B00;--a3:#00B900;--a4:#5046E5;--a5:#FFA800;--a6:#FF4F8B;
+  --red:#FF3D3D;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','Apple SD Gothic Neo','Segoe UI',sans-serif;min-height:100vh;}
+
+.hdr{position:sticky;top:0;z-index:100;background:#FFFFFF;border-bottom:2px solid var(--a1);padding:10px 14px;display:flex;align-items:center;gap:8px;box-shadow:0 1px 6px rgba(0,0,0,.07);}
+.hdr-info{flex:1;min-width:0;}
+.hdr-title{font-size:15px;font-weight:900;color:var(--text);}
+.hdr-sub{font-size:9px;color:var(--muted);margin-top:1px;}
+.hdr-btns{display:flex;gap:6px;flex-shrink:0;}
+.btn-save{background:linear-gradient(135deg,var(--a3),#16a34a);color:#fff;border:none;border-radius:9px;padding:8px 13px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;}
+.btn-sync{background:linear-gradient(135deg,var(--a1),#1a6fbe);color:#fff;border:none;border-radius:9px;padding:8px 13px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;}
+
+.tab-nav{display:flex;background:#FFFFFF;border-bottom:1px solid var(--border);position:sticky;top:56px;z-index:90;overflow-x:auto;}
+.tab-nav::-webkit-scrollbar{display:none;}
+.tab-btn{flex-shrink:0;border:none;background:transparent;cursor:pointer;font-family:inherit;padding:9px 11px;font-size:11px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;}
+.tab-btn.active{color:var(--a1);border-bottom-color:var(--a1);}
+
+.main{padding:10px;max-width:720px;margin:0 auto;}
+.tab-page{display:none;flex-direction:column;gap:10px;}
+.tab-page.active{display:flex;}
+
+/* 카드 */
+.card{background:var(--card);border:1px solid var(--border);border-radius:13px;overflow:hidden;}
+.chdr{padding:10px 13px;background:var(--card2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.cdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.ctitle{font-size:13px;font-weight:800;flex:1;}
+.ccnt{font-size:11px;color:var(--muted);}
+.cbody{padding:11px;}
+
+/* 공통 */
+.inp{width:100%;background:var(--card2);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-weight:600;padding:8px 11px;outline:none;font-family:inherit;}
+.inp:focus{border-color:var(--a4);}
+.row{background:var(--card2);border-radius:8px;padding:7px 10px;display:flex;align-items:center;gap:7px;margin-bottom:5px;}
+.row:last-child{margin-bottom:0;}
+.rnum{font-size:10px;color:var(--muted);font-weight:700;width:20px;text-align:center;flex-shrink:0;}
+.row-inp{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-size:13px;padding:6px 9px;outline:none;font-family:inherit;}
+.row-inp:focus{border-color:var(--a4);}
+.dbtn{background:rgba(239,68,68,.12);border:1.5px solid rgba(239,68,68,.25);color:var(--red);border-radius:7px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
+.add-btn{background:rgba(3,199,90,.06);border:1.5px dashed rgba(3,199,90,.35);color:var(--a1);border-radius:8px;padding:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;width:100%;margin-top:7px;}
+
+/* 작업자 카드 */
+.wcard{background:var(--card2);border-radius:11px;padding:11px;margin-bottom:9px;border-left:4px solid var(--border);}
+.wcard:last-child{margin-bottom:0;}
+.wcard-top{display:flex;align-items:center;gap:9px;margin-bottom:9px;}
+.wavatar{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.wname-inp{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-size:14px;font-weight:700;padding:6px 9px;outline:none;font-family:inherit;}
+.wname-inp:focus{border-color:var(--a4);}
+.section-lbl{font-size:10px;color:var(--muted);font-weight:700;margin-bottom:5px;}
+.icon-btns{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:7px;}
+.icon-btn{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;padding:3px 7px;font-size:15px;cursor:pointer;}
+.icon-btn.sel{border-color:var(--a1);background:rgba(3,199,90,.1);}
+.fp-grid{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:7px;}
+.fp-btn{border:1.5px solid var(--border);border-radius:7px;padding:4px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;background:var(--bg);color:var(--muted);}
+.fp-btn.on{color:#fff;}
+.col-btns{display:flex;flex-wrap:wrap;gap:4px;}
+.col-btn{width:21px;height:21px;border-radius:4px;border:2px solid transparent;cursor:pointer;transition:transform .15s;}
+.col-btn.sel{border-color:#fff;transform:scale(1.3);}
+
+/* 층비번 */
+
+/* Firebase */
+.fb-wrap{display:flex;flex-direction:column;gap:7px;}
+.fb-row{display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:9px;padding:9px 11px;}
+.fb-inp{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:7px;color:var(--text);font-size:12px;padding:7px 9px;outline:none;font-family:inherit;}
+.fb-inp:focus{border-color:var(--a1);}
+.fdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.fdot-ok{background:var(--a3);box-shadow:0 0 5px var(--a3);}
+.fdot-err{background:var(--red);}
+.fdot-chk{background:var(--a5);animation:blink 1s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.test-btn{background:rgba(3,199,90,.1);border:1.5px solid rgba(3,199,90,.35);color:var(--a1);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;}
+
+/* 앱별 설정 */
+.app-block{background:var(--card2);border-radius:10px;padding:10px 12px;margin-bottom:8px;border-left:3px solid var(--border);}
+.app-block:last-child{margin-bottom:0;}
+.app-block-title{font-size:12px;font-weight:800;margin-bottom:9px;display:flex;align-items:center;gap:6px;}
+.srow{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--border);}
+.srow:last-child{border-bottom:none;}
+.srow-left{flex:1;}
+.srow-label{font-size:12px;font-weight:700;}
+.srow-sub{font-size:10px;color:var(--muted);margin-top:1px;}
+.srow-right{flex-shrink:0;margin-left:10px;}
+/* 토글 스위치 */
+.toggle{position:relative;width:42px;height:23px;cursor:pointer;display:block;}
+.toggle input{opacity:0;width:0;height:0;position:absolute;}
+.tslider{position:absolute;inset:0;background:#D1D5DB;border-radius:12px;transition:.3s;}
+.tslider:before{content:'';position:absolute;width:17px;height:17px;left:3px;top:3px;background:#FFFFFF;border-radius:50%;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+.toggle input:checked+.tslider{background:var(--a1);}
+.toggle input:checked+.tslider:before{transform:translateX(19px);background:#fff;}
+.mini-inp{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;font-weight:700;padding:4px 8px;outline:none;font-family:inherit;width:60px;text-align:center;}
+.mini-inp:focus{border-color:var(--a1);}
+.mini-sel{background:var(--bg);border:1.5px solid var(--border);border-radius:6px;color:var(--text);font-size:11px;padding:4px 7px;outline:none;font-family:inherit;cursor:pointer;}
+
+/* 택배사/제약사 */
+.courier-item{background:var(--card2);border-radius:9px;padding:9px;margin-bottom:7px;border-left:3px solid #555;}
+.courier-top{display:flex;align-items:center;gap:7px;margin-bottom:7px;}
+.icon-sel-btns{display:flex;flex-wrap:wrap;gap:3px;}
+.col-sm-btns{display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;}
+
+/* 층현황 */
+.floor-sec{background:var(--card2);border-radius:10px;overflow:hidden;margin-bottom:8px;}
+.floor-sec-hdr{display:flex;align-items:center;gap:8px;padding:8px 11px;background:var(--card);border-bottom:1px solid var(--border);}
+.floor-sec-badge{padding:3px 10px;border-radius:6px;font-size:11px;font-weight:900;color:#fff;flex-shrink:0;}
+.plt-mini-row{display:flex;align-items:flex-start;gap:8px;padding:7px 11px;border-top:1px solid var(--border);}
+.plt-mini-info{flex:1;font-size:11px;}
+
+/* 데이터 */
+.stat-row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.stat-row:last-child{border-bottom:none;}
+.stat-val{font-weight:800;color:var(--a1);}
+.action-btn{width:100%;border:none;border-radius:9px;padding:10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;margin-top:7px;}
+.ab-safe{background:rgba(3,199,90,.08);border:1.5px solid rgba(3,199,90,.28);color:var(--a1);}
+.ab-danger{background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.28);color:var(--red);}
+
+/* 노트 */
+.note{background:rgba(255,168,0,.06);border:1.5px solid rgba(255,168,0,.25);border-radius:9px;padding:9px 11px;font-size:10px;color:#996600;line-height:1.8;margin-top:7px;}
+.note strong{color:#7A5000;}
+
+/* 토스트 */
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#FFFFFF;color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px 18px;font-size:13px;font-weight:700;z-index:9999;opacity:0;transition:opacity .3s;white-space:nowrap;pointer-events:none;box-shadow:0 4px 16px rgba(0,0,0,.12);}
+#toast.show{opacity:1;}
+#toast.ok{border-color:rgba(46,204,113,.4);color:var(--a3);}
+#toast.err{border-color:rgba(239,68,68,.4);color:var(--red);}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <img src="data:image/jpeg;base64,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" style="width:32px;height:32px;border-radius:7px;object-fit:cover;flex-shrink:0;" alt="DAYA">
+  <div class="hdr-info">
+    <div class="hdr-title">⚙️ 파레트 통합 설정관리</div>
+    <div class="hdr-sub">모든 앱 세팅 · Firebase 자동 동기화</div>
+  <div style="display:flex;align-items:center;gap:8px;margin-top:1px;"><div id="settingsDate" style="font-size:11px;font-weight:800;color:var(--a5);"></div><div style="font-size:9px;color:rgba(0,0,0,.3);">| made by 오영석</div></div>
+  </div>
+  <div class="hdr-btns">
+    <button class="btn-save" onclick="saveAll()">💾 저장</button>
+    <button class="btn-sync" onclick="syncToFB()">☁️ 동기화</button>
+  </div>
+</div>
+
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="showTab('worker',this)">👤 작업자</button>
+  <button class="tab-btn" onclick="showTab('floorset',this)">🏢 층별설정</button>
+  <button class="tab-btn" onclick="showTab('appset',this)">📱 앱 설정</button>
+  <button class="tab-btn" onclick="checkFirebasePin(this)">🔥 Firebase</button>
+  <button class="tab-btn" onclick="showTab('pharma',this)">💊 제약사</button>
+  <button class="tab-btn" onclick="showTab('courier',this)">🚚 택배사</button>
+  <button class="tab-btn" onclick="showTab('floorstatus',this)">📦 층현황</button>
+  <button class="tab-btn" onclick="showTab('data',this)">📊 데이터</button>
+  <button class="tab-btn" onclick="showTab('reset',this)">🗑 초기화</button>
+</div>
+
+<div class="main">
+
+  <!-- 작업자 탭 -->
+  <div class="tab-page active" id="tab-worker">
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--a1)"></div><div class="ctitle">작업자 관리</div><div class="ccnt" id="workerCnt"></div></div>
+      <div class="cbody">
+        <div id="workerRows"></div>
+        <button class="add-btn" onclick="addWorker()">＋ 작업자 추가</button>
+        <div class="note" style="margin-top:8px">
+          <strong>💡</strong> 담당 층 체크 → 로그인 시 해당 층만 선택 가능<br>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+
+  <!-- 층별 설정 탭 -->
+  <div class="tab-page" id="tab-floorset">
+    <div id="floorSetCards"></div>
+    <div class="note">
+      <strong>💡 층별 제약사:</strong> 체크된 제약사만 해당 층 작업자 입력화면에 표시됩니다.<br>
+      <strong>전체선택</strong>을 누르면 모든 제약사가 표시됩니다.
+    </div>
+  </div>
+
+  <!-- 앱 설정 탭 -->
+  <div class="tab-page" id="tab-appset">
+
+    <!-- 작업자 앱 -->
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--a3)"></div><div class="ctitle">📱 작업자 앱 설정</div></div>
+      <div class="cbody">
+        <div class="app-block" style="border-left-color:var(--a3)">
+          <div class="app-block-title">🔐 로그인 설정</div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">자동 로그인 유지</div><div class="srow-sub">앱 재실행 시 세션 유지</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_autoLogin" checked><span class="tslider"></span></label></div>
+          </div>
+
+        </div>
+        <div class="app-block" style="border-left-color:var(--a5)">
+          <div class="app-block-title">✏️ 입력 설정</div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">파레트번호 자동증가</div><div class="srow-sub">1번부터 자동 부여</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_autoPltNo" checked><span class="tslider"></span></label></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">제약사→택배사 자동선택</div><div class="srow-sub">비씨/구주→용마, 부광→CJ</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_autoCourier" checked><span class="tslider"></span></label></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">승인 후 대기탭 자동이동</div><div class="srow-sub">입력 완료 후 대기로 전환</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_autoTab" checked><span class="tslider"></span></label></div>
+          </div>
+        </div>
+        <div class="app-block" style="border-left-color:var(--a2)">
+          <div class="app-block-title">🔄 동기화 설정</div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">전층현황 자동갱신 주기</div><div class="srow-sub">초 단위 (0=수동)</div></div>
+            <div class="srow-right"><input class="mini-inp" id="opt_refreshSec" type="number" min="0" max="60" value="10"></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">마감 후 보고서 자동표시</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_autoReport" checked><span class="tslider"></span></label></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 출고팀 PC -->
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--a1)"></div><div class="ctitle">🖥 출고팀 PC 설정</div></div>
+      <div class="cbody">
+        <div class="app-block" style="border-left-color:var(--a1)">
+          <div class="app-block-title">📊 대시보드 설정</div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">자동 새로고침 주기</div><div class="srow-sub">초 단위</div></div>
+            <div class="srow-right"><input class="mini-inp" id="opt_pcRefresh" type="number" min="5" max="120" value="10"></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">마감 완료 층 강조표시</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_pcDoneHighlight" checked><span class="tslider"></span></label></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">신규 입고 알림음</div><div class="srow-sub">새 파레트 수신 시</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_pcSound"><span class="tslider"></span></label></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">표시할 기본 정렬</div></div>
+            <div class="srow-right">
+              <select class="mini-sel" id="opt_pcSort">
+                <option value="courier">택배사별</option>
+                <option value="floor">층별</option>
+                <option value="pharma">제약사별</option>
+                <option value="time">시간순</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 관리자 앱 -->
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--a4)"></div><div class="ctitle">📱 관리자 앱 설정</div></div>
+      <div class="cbody">
+        <div class="app-block" style="border-left-color:var(--a4)">
+          <div class="app-block-title">🔔 알림 설정</div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">마감 완료 알림</div><div class="srow-sub">층 마감 시 표시</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_adminCloseAlert" checked><span class="tslider"></span></label></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">신규 파레트 알림</div><div class="srow-sub">대기 등록 시 표시</div></div>
+            <div class="srow-right"><label class="toggle"><input type="checkbox" id="opt_adminNewAlert"><span class="tslider"></span></label></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">자동 새로고침 주기</div><div class="srow-sub">초 단위</div></div>
+            <div class="srow-right"><input class="mini-inp" id="opt_adminRefresh" type="number" min="5" max="120" value="10"></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Firebase 탭 -->
+  <div class="tab-page" id="tab-firebase">
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--a2)"></div><div class="ctitle">🔥 Firebase 연동</div></div>
+      <div class="cbody">
+        <div style="font-size:11px;color:var(--muted);font-weight:700;margin-bottom:6px;">Realtime Database URL</div>
+        <div class="fb-row" style="flex-direction:column;align-items:stretch;gap:7px;padding:10px;">
+          <input class="fb-inp" id="fbUrl" placeholder="https://your-project-default-rtdb.firebaseio.com" style="width:100%;">
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div class="fdot fdot-err" id="fbDot"></div>
+            <span id="fbStatusTxt" style="font-size:12px;font-weight:700;flex:1;">미연결</span>
+            <button class="test-btn" onclick="testFB()">연결 테스트</button>
+          </div>
+        </div>
+        <div class="note" style="margin-top:8px">
+          <strong>설정 방법:</strong><br>
+          1. Firebase Console → Realtime Database 생성<br>
+          2. 규칙: read/write true 설정<br>
+          3. URL 입력 후 저장 → ☁️ 동기화 클릭<br>
+          4. 모든 앱이 동일한 Firebase URL 사용<br>
+          <strong>동기화 항목:</strong> 설정(작업자·비번·제약사·택배사) + 앱별 옵션
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 제약사 탭 -->
+  <div class="tab-page" id="tab-pharma">
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--a6)"></div><div class="ctitle">제약사 목록</div><div class="ccnt" id="pharmaCnt"></div></div>
+      <div class="cbody">
+        <div class="note" style="margin-bottom:8px">
+          <strong>택배사 자동선택 규칙:</strong> 비씨월드·구주→용마 / 부광약품→CJ / 나머지→고려 / 한진은 수동
+        </div>
+        <div id="pharmaRows"></div>
+        <button class="add-btn" onclick="addPharma()">＋ 제약사 추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 택배사 탭 -->
+  <div class="tab-page" id="tab-courier">
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--a2)"></div><div class="ctitle">택배사 목록</div></div>
+      <div class="cbody">
+        <div id="courierRows"></div>
+        <button class="add-btn" onclick="addCourier()">＋ 택배사 추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 층현황 탭 -->
+  <div class="tab-page" id="tab-floorstatus">
+    <div class="card">
+      <div class="chdr">
+        <div class="cdot" style="background:var(--a5)"></div>
+        <div class="ctitle">층별 대기 현황</div>
+        <button onclick="loadFloorStatus()" style="margin-left:auto;background:rgba(59,158,255,.12);border:1px solid rgba(59,158,255,.28);color:var(--a1);border-radius:6px;padding:4px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">🔄 새로고침</button>
+      </div>
+      <div class="cbody">
+        <div id="floorStatusBody"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 초기화 탭 -->
+  <div class="tab-page" id="tab-reset">
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--red)"></div><div class="ctitle">날짜별 데이터 초기화</div></div>
+      <div class="cbody">
+        <div class="note" style="margin-bottom:12px;">
+          <strong>⚠️ 주의:</strong> 초기화하면 Firebase의 현재 작업 데이터가 삭제됩니다.<br>
+          <strong>💾 자동보관:</strong> 초기화 전 오늘 집계 데이터가 자동 저장됩니다.<br>
+          <strong>📅 날짜 선택:</strong> 특정 날짜의 보관 데이터만 삭제도 가능합니다.
+        </div>
+
+        <!-- 현재 데이터 초기화 -->
+        <div class="app-block" style="border-left-color:var(--red);margin-bottom:10px;">
+          <div class="app-block-title">🔴 현재 작업 데이터 초기화</div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">오늘 업무 마감 + 초기화</div><div class="srow-sub">집계 데이터 보관 후 전체 초기화</div></div>
+            <div class="srow-right"><button onclick="settingsArchiveReset()" style="background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.3);color:var(--red);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">📅 마감 후 초기화</button></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">대기 데이터만 초기화</div><div class="srow-sub">출고완료·마감 데이터 유지</div></div>
+            <div class="srow-right"><button onclick="settingsResetWaiting()" style="background:rgba(249,115,22,.1);border:1.5px solid rgba(249,115,22,.3);color:var(--a2);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">⏳ 대기만 초기화</button></div>
+          </div>
+          <div class="srow">
+            <div class="srow-left"><div class="srow-label">전체 초기화 (보관없이)</div><div class="srow-sub">모든 데이터 즉시 삭제</div></div>
+            <div class="srow-right"><button onclick="settingsHardReset()" style="background:rgba(239,68,68,.15);border:1.5px solid rgba(239,68,68,.4);color:var(--red);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">⚠️ 전체삭제</button></div>
+          </div>
+        </div>
+
+        <!-- 과거 데이터 관리 -->
+        <div class="app-block" style="border-left-color:var(--a4);">
+          <div class="app-block-title">📅 보관된 과거 데이터 관리</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button onclick="loadHistoryList()" style="background:rgba(59,158,255,.12);border:1.5px solid rgba(59,158,255,.3);color:var(--a1);border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;">🔄 목록 불러오기</button>
+          </div>
+          <div id="historyListWrap" style="max-height:300px;overflow-y:auto;">
+            <div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;">목록 불러오기를 눌러주세요</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 데이터 탭 -->
+  <div class="tab-page" id="tab-data">
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:var(--a3)"></div><div class="ctitle">데이터 현황</div></div>
+      <div class="cbody">
+        <div id="dataStats"></div>
+        <button class="action-btn ab-safe" onclick="exportCSV()">📊 CSV 내보내기</button>
+        <button class="action-btn ab-safe" onclick="exportJSON()">📥 JSON 내보내기</button>
+        <button class="action-btn ab-danger" onclick="clearData()">🗑 파레트 데이터 초기화</button>
+        <button class="action-btn ab-danger" style="margin-top:4px" onclick="clearAll()">⚠️ 전체 초기화 (설정 포함)</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+<div id="toast"></div>
+
+<script>
+/* ── 스토리지 래퍼 (content:// 차단 대응) ── */
+var _mem={};
+function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){_mem[k]=v;}}
+function lsGet(k){try{var v=localStorage.getItem(k);if(v!==null)return v;}catch(e){}return _mem[k]||null;}
+function lsDel(k){try{localStorage.removeItem(k);}catch(e){}delete _mem[k];}
+
+
+function getTodayStr(){
+  var d=new Date();
+  var days=['일','월','화','수','목','금','토'];
+  var month=d.getMonth()+1;
+  var date=d.getDate();
+  var day=days[d.getDay()];
+  return month+'월 '+date+'일 ('+day+')';
+}
+var ALL_FLOORS = ['B1','1F','3F','4F','5F'];
+var FN = {'B1':'지하1층','1F':'1층','3F':'3층','4F':'4층','5F':'5층'};
+var FCOLORS = {'B1':'#3b9eff','1F':'#a78bfa','3F':'#f97316','4F':'#2ecc71','5F':'#ffd600'};
+var WCOLORS = ['#3b9eff','#2ecc71','#f97316','#a78bfa','#ffd600','#ff6b9d','#06b6d4','#84cc16','#ef4444','#14b8a6'];
+var WICONS = ['👤','👨','👩','🧑','👷','🧑‍🔧','👔','🙋','😊','🧑‍💼'];
+var CICONS = ['📦','🚚','📫','🏎','🚛','🛵','🚁','🚂'];
+var CCOLORS = ['#3b9eff','#a78bfa','#f97316','#2ecc71','#ffd600','#ff6b9d','#06b6d4','#84cc16'];
+
+// 전체 설정
+var cfg = {
+  workers: [
+    {name:'홍길동', icon:'👷', color:'#3b9eff', floors:['4F','3F'], role:'팀장'},
+    {name:'김철수', icon:'👨', color:'#2ecc71', floors:['1F','B1'], role:'부팀장'},
+    {name:'이영희', icon:'👩', color:'#f97316', floors:['5F','4F'], role:'사원'},
+    {name:'박민수', icon:'🧑', color:'#a78bfa', floors:['3F','1F'], role:'사원'}
+  ],
+  floorPw: {'B1':'','1F':'','3F':'','4F':'','5F':''},
+  pharmas: ['구주제약','비씨월드제약','부광약품','대우제약','조아제약','동구바이오제약','삼천당제약','안국약품','한국파마','국제약품','아주약품','진양제약','매넬티제약','팜젠사이언스','경동제약','한국휴텍스제약','경동약품','에리슨제약'],
+  couriers: [
+    {id:'koryo', name:'고려택배', icon:'📦', color:'#3b9eff'},
+    {id:'hanjin', name:'한진',    icon:'🚚', color:'#a78bfa'},
+    {id:'cj',    name:'CJ',       icon:'📫', color:'#f97316'},
+    {id:'yongma',name:'용마',     icon:'🏎', color:'#2ecc71'}
+  ],
+  fbUrl: 'https://pallete-system-default-rtdb.asia-southeast1.firebasedatabase.app',
+  // 층별 설정: 층마다 사용 제약사 목록, 층 이름
+  floorSettings: {
+    'B1': {name:'지하1층', pharmas:null},
+    '1F': {name:'1층',    pharmas:null},
+    '3F': {name:'3층',    pharmas:null},
+    '4F': {name:'4층',    pharmas:null},
+    '5F': {name:'5층',    pharmas:null}
+  },
+  // null = 전체 제약사 사용
+  appOptions: {
+    autoLogin:true, skipPw:true, autoPltNo:true, autoCourier:true,
+    autoTab:true, refreshSec:10, autoReport:true,
+    pcRefresh:10, pcDoneHighlight:true, pcSound:false, pcSort:'courier',
+    adminCloseAlert:true, adminNewAlert:false, adminRefresh:10, adminPin:''
+  }
+};
+
+function loadCfg() {
+  var s = lsGet('plt_cfg');
+  if (s) {
+    try {
+      var c = JSON.parse(s);
+      if (c.workers) cfg.workers = c.workers;
+      if (c.floorPw) cfg.floorPw = c.floorPw;
+      if (c.pharmas && c.pharmas.length) cfg.pharmas = c.pharmas;
+      if (c.couriers && c.couriers.length) cfg.couriers = c.couriers;
+      if (c.fbUrl !== undefined) cfg.fbUrl = c.fbUrl;
+      if (c.floorSettings) cfg.floorSettings = Object.assign(cfg.floorSettings, c.floorSettings);
+      if (c.appOptions) cfg.appOptions = Object.assign(cfg.appOptions, c.appOptions);
+    } catch(e) {}
+  }
+}
+
+function init() {
+  loadCfg();
+  renderWorkers();
+  
+  renderPharmas();
+  renderCouriers();
+  loadAppOptions();
+  var fbEl = document.getElementById('fbUrl');
+  if (fbEl) fbEl.value = cfg.fbUrl || '';
+}
+
+
+/* ════ 설정관리 초기화 함수들 ════ */
+var FB_URL_S = (function(){var s=lsGet('plt_cfg');if(s){try{var c=JSON.parse(s);if(c.fbUrl)return c.fbUrl;}catch(e){}}return '';})();
+
+function getResetFbUrl(){
+  FB_URL_S = cfg.fbUrl || '';
+  if(!FB_URL_S){showToast('Firebase URL이 설정되지 않았습니다','err');return null;}
+  return FB_URL_S;
+}
+
+function getDayKeyS(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+
+async function settingsArchiveReset(){
+  var url=getResetFbUrl();if(!url)return;
+  if(!confirm('오늘('+getDayKeyS()+') 업무를 마감하고\n현재 데이터를 초기화할까요?\n\n집계 데이터는 자동 보관됩니다.'))return;
+  try{
+    // 현재 데이터 가져오기
+    var r=await fetch(url+'/waiting.json');var wd=await r.json();
+    var r2=await fetch(url+'/shipments.json');var sd=await r2.json();
+    // 집계만 보관
+    var totalPlt=0,totalBox=0,byFloor={},byCourier={};
+    var AF=['B1','1F','3F','4F','5F'];
+    var FN2={'B1':'지하1층','1F':'1층','3F':'3층','4F':'4층','5F':'5층'};
+    AF.forEach(function(f){
+      var wl=(wd&&wd.data&&wd.data[f])||[];
+      var sl=[];
+      if(sd)Object.keys(sd).forEach(function(k){var e=sd[k];if(e&&e.floor===f&&e.pallets)sl=sl.concat(e.pallets);});
+      var all=wl.concat(sl);
+      byFloor[f]={plt:all.length,box:all.reduce(function(s,p){return s+(p.totalBox||0);},0),done:(wd&&wd.doneStatus&&wd.doneStatus[f])||false};
+      all.forEach(function(p){
+        if(!byCourier[p.courierId])byCourier[p.courierId]={plt:0,box:0};
+        byCourier[p.courierId].plt++;byCourier[p.courierId].box+=(p.totalBox||0);
+        totalPlt++;totalBox+=(p.totalBox||0);
+      });
+    });
+    await fetch(url+'/history/'+getDayKeyS()+'.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:getDayKeyS(),savedAt:new Date().toISOString(),totalPlt:totalPlt,totalBox:totalBox,byFloor:byFloor,byCourier:byCourier})});
+    // 초기화
+    var empty={data:{},updatedAt:new Date().toISOString(),doneStatus:{}};
+    AF.forEach(function(f){empty.data[f]=[];});
+    await Promise.all([
+      fetch(url+'/waiting.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(empty)}),
+      fetch(url+'/shipments.json',{method:'DELETE'}),
+      fetch(url+'/notifications.json',{method:'DELETE'}),
+    ]);
+    lsSet('plt_last_day',getDayKeyS());
+    showToast('✅ 마감 + 초기화 완료!','ok');
+    loadHistoryList();
+  }catch(e){showToast('오류: '+e.message,'err');}
+}
+
+async function settingsResetWaiting(){
+  var url=getResetFbUrl();if(!url)return;
+  if(!confirm('대기 데이터만 초기화할까요?\n출고완료·마감 데이터는 유지됩니다.'))return;
+  try{
+    var empty={data:{},updatedAt:new Date().toISOString(),doneStatus:{}};
+    ['B1','1F','3F','4F','5F'].forEach(function(f){empty.data[f]=[];});
+    await fetch(url+'/waiting.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(empty)});
+    showToast('✅ 대기 데이터 초기화 완료','ok');
+  }catch(e){showToast('오류: '+e.message,'err');}
+}
+
+async function settingsHardReset(){
+  var url=getResetFbUrl();if(!url)return;
+  if(!confirm('⚠️ 경고!\n모든 데이터가 보관없이 즉시 삭제됩니다.\n\n정말 삭제하시겠습니까?'))return;
+  if(!confirm('마지막 확인: 정말로 전체 삭제?'))return;
+  try{
+    var empty={data:{},updatedAt:new Date().toISOString(),doneStatus:{}};
+    ['B1','1F','3F','4F','5F'].forEach(function(f){empty.data[f]=[];});
+    await Promise.all([
+      fetch(url+'/waiting.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(empty)}),
+      fetch(url+'/shipments.json',{method:'DELETE'}),
+      fetch(url+'/notifications.json',{method:'DELETE'}),
+      fetch(url+'/reports.json',{method:'DELETE'}),
+    ]);
+    lsDel('plt_state');
+    showToast('🗑 전체 초기화 완료','ok');
+  }catch(e){showToast('오류: '+e.message,'err');}
+}
+
+async function loadHistoryList(){
+  var url=getResetFbUrl();if(!url)return;
+  var wrap=document.getElementById('historyListWrap');
+  if(!wrap)return;
+  wrap.innerHTML='<div style="text-align:center;padding:12px;color:var(--muted);font-size:12px;">로딩 중...</div>';
+  try{
+    var r=await fetch(url+'/history.json');
+    var d=await r.json();
+    if(!d||Object.keys(d).length===0){wrap.innerHTML='<div style="text-align:center;padding:16px;color:var(--muted);font-size:12px;">보관된 데이터가 없습니다</div>';return;}
+    var keys=Object.keys(d).sort().reverse();
+    var html='';
+    keys.forEach(function(date){
+      var rec=d[date];if(!rec)return;
+      html+='<div style="display:flex;align-items:center;gap:8px;background:var(--card2);border-radius:8px;padding:9px 11px;margin-bottom:6px;">'
+        +'<div style="flex:1;">'
+          +'<div style="font-size:13px;font-weight:800;color:var(--a5);">'+date+'</div>'
+          +'<div style="font-size:11px;color:var(--muted);">'+rec.totalPlt+'PLT · '+rec.totalBox+'BOX · '+(rec.savedAt?new Date(rec.savedAt).toLocaleTimeString('ko-KR',{hour:'2-digit',minute:'2-digit'}):'')+'</div>'
+        +'</div>'
+        +'<button class="del-hist-btn" data-date="'+date+'" style="background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.25);color:var(--red);border-radius:6px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;">🗑 삭제</button>'
+        +'</div>';
+    });
+    wrap.innerHTML=html;
+  }catch(e){wrap.innerHTML='<div style="text-align:center;padding:12px;color:var(--red);font-size:12px;">로드 실패</div>';}
+}
+
+async function deleteHistory(date){
+  var url=getResetFbUrl();if(!url)return;
+  if(!confirm(date+' 데이터를 삭제할까요?'))return;
+  try{
+    await fetch(url+'/history/'+date+'.json',{method:'DELETE'});
+    showToast('🗑 '+date+' 삭제됨','ok');
+    loadHistoryList();
+  }catch(e){showToast('오류: '+e.message,'err');}
+}
+
+/* 과거데이터 삭제 이벤트 위임 */
+document.addEventListener('click', function(e){
+  var btn = e.target.closest('.del-hist-btn');
+  if(btn){ deleteHistory(btn.getAttribute('data-date')); }
+});
+
+
+/* Firebase 탭 비번 */
+function checkFirebasePin(btn){
+  var pin = prompt('Firebase 탭 비밀번호를 입력하세요:');
+  if(pin === null) return; // 취소
+  if(pin === '0314'){
+    showTab('firebase', btn);
+  } else {
+    alert('비밀번호가 올바르지 않습니다.');
+  }
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.tab-page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+  document.getElementById('tab-'+name).classList.add('active');
+  btn.classList.add('active');
+  if (name==='data') renderDataStats();
+  if (name==='floorstatus') loadFloorStatus();
+
+  if (name==='reset') loadHistoryList();
+  if (name==='floorset') renderFloorSet();
+}
+
+/* ════ 층별 설정 ════ */
+function renderFloorSet() {
+  var container = document.getElementById('floorSetCards');
+  container.innerHTML = '';
+
+  ALL_FLOORS.forEach(function(floor) {
+    var fs = cfg.floorSettings[floor] || {name: FN[floor], pharmas: null};
+    // pharmas:null → 전체사용, pharmas:[] → 배열로 관리
+    var selected = fs.pharmas; // null이면 전체
+
+    var card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom = '10px';
+
+    // 헤더
+    var chdr = document.createElement('div'); chdr.className = 'chdr';
+    var dot = document.createElement('div'); dot.className = 'cdot'; dot.style.background = FCOLORS[floor];
+    var titleWrap = document.createElement('div'); titleWrap.style.cssText = 'flex:1;display:flex;align-items:center;gap:8px;';
+
+    // 층 이름 편집
+    var floorBadge = document.createElement('div');
+    floorBadge.style.cssText = 'background:'+FCOLORS[floor]+';color:#fff;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:900;flex-shrink:0;';
+    floorBadge.textContent = FN[floor];
+    titleWrap.appendChild(floorBadge);
+
+    // 제약사 수 표시
+    var cntEl = document.createElement('div');
+    cntEl.className = 'ccnt';
+    cntEl.id = 'floorPharmaCnt_' + floor;
+    cntEl.textContent = selected === null ? '전체 ' + cfg.pharmas.length + '개' : selected.length + '개 선택';
+
+    chdr.appendChild(dot);
+    chdr.appendChild(titleWrap);
+    chdr.appendChild(cntEl);
+    card.appendChild(chdr);
+
+    // 바디
+    var cbody = document.createElement('div'); cbody.className = 'cbody';
+
+    // 전체선택 / 전체해제 버튼
+    var topBtns = document.createElement('div');
+    topBtns.style.cssText = 'display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;';
+
+    var selAllBtn = document.createElement('button');
+    selAllBtn.style.cssText = 'background:rgba(46,204,113,.12);border:1.5px solid rgba(46,204,113,.3);color:var(--a3);border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;';
+    selAllBtn.textContent = '✅ 전체선택';
+    selAllBtn.addEventListener('click', function() {
+      cfg.floorSettings[floor].pharmas = null; // null = 전체
+      renderFloorSet();
+    });
+
+    var clearAllBtn = document.createElement('button');
+    clearAllBtn.style.cssText = 'background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.25);color:var(--red);border-radius:7px;padding:5px 11px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;';
+    clearAllBtn.textContent = '☐ 전체해제';
+    clearAllBtn.addEventListener('click', function() {
+      cfg.floorSettings[floor].pharmas = [];
+      renderFloorSet();
+    });
+
+    var useAllTag = document.createElement('div');
+    useAllTag.style.cssText = 'font-size:10px;color:var(--muted);padding:5px 0;display:flex;align-items:center;';
+    useAllTag.textContent = selected === null ? '✅ 현재: 전체 제약사 사용 중' : '⚠️ 일부 제약사만 표시됨';
+    useAllTag.style.color = selected === null ? 'var(--a3)' : 'var(--a5)';
+
+    topBtns.appendChild(selAllBtn);
+    topBtns.appendChild(clearAllBtn);
+    topBtns.appendChild(useAllTag);
+    cbody.appendChild(topBtns);
+
+    // 제약사 체크박스 그리드
+    var grid = document.createElement('div');
+    grid.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:5px;';
+
+    cfg.pharmas.forEach(function(pname, pi) {
+      var isOn = selected === null || selected.indexOf(pname) >= 0;
+      var item = document.createElement('div');
+      item.style.cssText = 'display:flex;align-items:center;gap:7px;background:var(--card2);border-radius:8px;padding:7px 9px;cursor:pointer;border:1.5px solid '+(isOn?'rgba(59,158,255,.3)':'var(--border)')+';transition:all .15s;';
+
+      var dot2 = document.createElement('div');
+      dot2.style.cssText = 'width:8px;height:8px;border-radius:50%;flex-shrink:0;background:'+(['#3b9eff','#a78bfa','#f97316','#2ecc71','#ffd600','#ff6b9d','#06b6d4','#84cc16'][pi%8])+';';
+
+      var chk = document.createElement('div');
+      chk.style.cssText = 'width:16px;height:16px;border-radius:4px;border:1.5px solid '+(isOn?'var(--a1)':'var(--muted)')+';background:'+(isOn?'var(--a1)':'transparent')+';display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:10px;color:#fff;';
+      chk.textContent = isOn ? '✓' : '';
+
+      var lbl = document.createElement('div');
+      lbl.style.cssText = 'font-size:11px;font-weight:700;color:'+(isOn?'var(--text)':'var(--muted)')+';flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+      lbl.textContent = pname;
+
+      item.appendChild(dot2); item.appendChild(chk); item.appendChild(lbl);
+
+      item.addEventListener('click', function() {
+        if (!cfg.floorSettings[floor]) cfg.floorSettings[floor] = {name:FN[floor], pharmas:null};
+        // null → 전체 배열로 변환 후 토글
+        if (cfg.floorSettings[floor].pharmas === null) {
+          cfg.floorSettings[floor].pharmas = cfg.pharmas.slice();
+        }
+        var arr = cfg.floorSettings[floor].pharmas;
+        var idx = arr.indexOf(pname);
+        if (idx >= 0) arr.splice(idx, 1);
+        else arr.push(pname);
+        // 전체 선택이면 null로
+        if (arr.length === cfg.pharmas.length) cfg.floorSettings[floor].pharmas = null;
+
+        // 즉시 UI 반영
+        var nowOn = cfg.floorSettings[floor].pharmas === null || cfg.floorSettings[floor].pharmas.indexOf(pname) >= 0;
+        chk.textContent = nowOn ? '✓' : '';
+        chk.style.background = nowOn ? 'var(--a1)' : 'transparent';
+        chk.style.borderColor = nowOn ? 'var(--a1)' : 'var(--muted)';
+        item.style.borderColor = nowOn ? 'rgba(59,158,255,.3)' : 'var(--border)';
+        lbl.style.color = nowOn ? 'var(--text)' : 'var(--muted)';
+
+        // 카운트 업데이트
+        var cur = cfg.floorSettings[floor].pharmas;
+        var cntEl2 = document.getElementById('floorPharmaCnt_'+floor);
+        if (cntEl2) cntEl2.textContent = cur===null ? '전체 '+cfg.pharmas.length+'개' : cur.length+'개 선택';
+      });
+
+      grid.appendChild(item);
+    });
+
+    cbody.appendChild(grid);
+    card.appendChild(cbody);
+    container.appendChild(card);
+  });
+}
+
+/* ════ 작업자 ════ */
+function renderWorkers() {
+  document.getElementById('workerCnt').textContent = cfg.workers.length+'명';
+  var container = document.getElementById('workerRows');
+  container.innerHTML = '';
+  cfg.workers.forEach(function(w, i) {
+    var card = document.createElement('div');
+    card.className = 'wcard';
+    card.style.borderLeftColor = w.color;
+
+    // 상단: 아바타 + 이름 + 삭제
+    var top = document.createElement('div'); top.className = 'wcard-top';
+    var av = document.createElement('div'); av.className = 'wavatar'; av.style.background = w.color; av.textContent = w.icon||'👤';
+    var nameInp = document.createElement('input'); nameInp.className = 'wname-inp'; nameInp.setAttribute('data-wi',i); nameInp.value = w.name; nameInp.placeholder = '작업자 이름';
+    nameInp.addEventListener('input', function(){ cfg.workers[i].name = this.value; });
+    var del = document.createElement('button'); del.className = 'dbtn'; del.textContent = '✕';
+    del.addEventListener('click', function(){ if(confirm("'"+cfg.workers[i].name+"' 삭제?")){cfg.workers.splice(i,1);lsSet('plt_cfg',JSON.stringify(cfg));renderWorkers();} });
+    top.appendChild(av); top.appendChild(nameInp); top.appendChild(del); card.appendChild(top);
+
+    // 아이콘
+    var iL = document.createElement('div'); iL.className = 'section-lbl'; iL.textContent = '아이콘';
+    var iBtns = document.createElement('div'); iBtns.className = 'icon-btns';
+    WICONS.forEach(function(ico) {
+      var b = document.createElement('button'); b.className = 'icon-btn'+(w.icon===ico?' sel':''); b.textContent = ico;
+      b.addEventListener('click', function(){ cfg.workers[i].icon=ico; av.textContent=ico; iBtns.querySelectorAll('.icon-btn').forEach(function(x){x.classList.remove('sel');}); b.classList.add('sel'); });
+      iBtns.appendChild(b);
+    });
+    card.appendChild(iL); card.appendChild(iBtns);
+
+    // 층 권한
+    var fL = document.createElement('div'); fL.className = 'section-lbl'; fL.textContent = '📋 담당 층 권한';
+    var fGrid = document.createElement('div'); fGrid.className = 'fp-grid';
+    ALL_FLOORS.forEach(function(f) {
+      var on = w.floors && w.floors.indexOf(f)>=0;
+      var fb = document.createElement('button'); fb.className = 'fp-btn'+(on?' on':'');
+      if(on){fb.style.background=FCOLORS[f];fb.style.borderColor=FCOLORS[f];fb.style.color='#fff';}
+      fb.textContent = FN[f];
+      fb.addEventListener('click', function(){
+        if(!cfg.workers[i].floors) cfg.workers[i].floors=[];
+        var idx=cfg.workers[i].floors.indexOf(f);
+        if(idx>=0){cfg.workers[i].floors.splice(idx,1);fb.classList.remove('on');fb.style.background='';fb.style.borderColor='';fb.style.color='';}
+        else{cfg.workers[i].floors.push(f);fb.classList.add('on');fb.style.background=FCOLORS[f];fb.style.borderColor=FCOLORS[f];fb.style.color='#fff';}
+      });
+      fGrid.appendChild(fb);
+    });
+    card.appendChild(fL); card.appendChild(fGrid);
+
+
+    // 직책 / 권한
+    var rL2 = document.createElement('div'); rL2.className = 'section-lbl'; rL2.textContent = '직책 / 권한';
+    var rGrid2 = document.createElement('div'); rGrid2.style.cssText = 'display:flex;gap:6px;margin-bottom:7px;';
+    var roles2 = [
+      {id:'사원',   label:'사원',   desc:'입력·대기', color:'#5a7a99'},
+      {id:'부팀장', label:'부팀장', desc:'사원+수정/삭제·마감', color:'#f97316'},
+      {id:'팀장',   label:'팀장',   desc:'전체 권한', color:'#2ecc71'}
+    ];
+    (function(workerIdx, gridEl){
+      roles2.forEach(function(role){
+        var rb = document.createElement('button');
+        var isSel = (cfg.workers[workerIdx].role||'사원') === role.id;
+        rb.style.cssText = 'flex:1;border:2px solid '+(isSel?role.color:'var(--border)')+';background:'+(isSel?role.color+'22':'var(--bg)')+';color:'+(isSel?role.color:'var(--muted)')+';border-radius:9px;padding:7px 4px;font-size:11px;font-weight:800;cursor:pointer;font-family:inherit;text-align:center;';
+        rb.innerHTML = '<div>'+role.label+'</div><div style="font-size:9px;opacity:.7;margin-top:1px;">'+role.desc+'</div>';
+        (function(roleId, roleColor){
+          rb.addEventListener('click', function(){
+            cfg.workers[workerIdx].role = roleId;
+            gridEl.querySelectorAll('button').forEach(function(b, bi){
+              var r2 = roles2[bi];
+              var sel = r2.id === roleId;
+              b.style.borderColor = sel ? r2.color : 'var(--border)';
+              b.style.background = sel ? r2.color+'22' : 'var(--bg)';
+              b.style.color = sel ? r2.color : 'var(--muted)';
+            });
+          });
+        })(role.id, role.color);
+        gridEl.appendChild(rb);
+      });
+    })(i, rGrid2);
+    card.appendChild(rL2); card.appendChild(rGrid2);
+
+    // 권한 설정 (직책 이후 별도)
+    var permL = document.createElement('div'); permL.className = 'section-lbl'; permL.textContent = '⚙️ 세부 권한 설정';
+    var permWrap = document.createElement('div');
+    permWrap.style.cssText = 'background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:8px 10px;margin-bottom:7px;';
+    var permItems = [
+      {key:'canEdit',    label:'파레트 수정', defaultVal: (w.role==='부팀장'||w.role==='팀장')},
+      {key:'canDelete',  label:'파레트 삭제', defaultVal: (w.role==='부팀장'||w.role==='팀장')},
+      {key:'canExpect',  label:'예상 탭',     defaultVal: (w.role==='부팀장'||w.role==='팀장')},
+      {key:'canOutput',  label:'전층현황 탭', defaultVal: (w.role==='부팀장'||w.role==='팀장')},
+      {key:'canReset',   label:'일일 마감',   defaultVal: (w.role==='부팀장'||w.role==='팀장')},
+    ];
+    if(!cfg.workers[i].perms) cfg.workers[i].perms = {};
+    permItems.forEach(function(pItem){
+      var curVal = cfg.workers[i].perms[pItem.key] !== undefined
+        ? cfg.workers[i].perms[pItem.key]
+        : pItem.defaultVal;
+      var pRow = document.createElement('div');
+      pRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);';
+      var pLbl = document.createElement('div');
+      pLbl.style.cssText = 'font-size:12px;font-weight:700;';
+      pLbl.textContent = pItem.label;
+      var tog = document.createElement('label');
+      tog.className = 'toggle';
+      var togInp = document.createElement('input');
+      togInp.type = 'checkbox';
+      togInp.checked = curVal;
+      var togSlider = document.createElement('span');
+      togSlider.className = 'tslider';
+      tog.appendChild(togInp); tog.appendChild(togSlider);
+      (function(pKey, tidx){
+        togInp.addEventListener('change', function(){
+          if(!cfg.workers[tidx].perms) cfg.workers[tidx].perms = {};
+          cfg.workers[tidx].perms[pKey] = togInp.checked;
+        });
+      })(pItem.key, i);
+      pRow.appendChild(pLbl); pRow.appendChild(tog);
+      permWrap.appendChild(pRow);
+    });
+    card.appendChild(permL); card.appendChild(permWrap);
+
+    // 직책별 비번
+    var pwL = document.createElement('div'); pwL.className = 'section-lbl'; pwL.textContent = '🔒 비밀번호';
+    var pwWrap = document.createElement('div');
+    pwWrap.style.cssText = 'display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px solid var(--border);border-radius:9px;padding:8px 11px;margin-bottom:7px;';
+    var pwInp2 = document.createElement('input');
+    pwInp2.type = 'password';
+    pwInp2.placeholder = '비워두면 비번없음';
+    pwInp2.value = w.password||'';
+    pwInp2.style.cssText = 'flex:1;background:transparent;border:none;color:var(--text);font-size:15px;font-weight:800;outline:none;font-family:inherit;letter-spacing:3px;';
+    pwInp2.setAttribute('data-pwi', i);
+    var eyeBtn2 = document.createElement('button');
+    eyeBtn2.textContent = '👁';
+    eyeBtn2.style.cssText = 'background:none;border:none;color:var(--muted);font-size:14px;cursor:pointer;padding:0;';
+    eyeBtn2.addEventListener('click', function(){
+      pwInp2.type = pwInp2.type==='password'?'text':'password';
+    });
+    var pwNote = document.createElement('div');
+    pwNote.style.cssText = 'font-size:9px;color:var(--muted);margin-bottom:7px;';
+    pwNote.textContent = '⚠️ 비워두면 비번 없이 입장';
+    pwWrap.appendChild(pwInp2); pwWrap.appendChild(eyeBtn2);
+    card.appendChild(pwL); card.appendChild(pwWrap); card.appendChild(pwNote);
+
+    // 색상
+    var cL = document.createElement('div'); cL.className = 'section-lbl'; cL.textContent = '색상';
+    var cBtns = document.createElement('div'); cBtns.className = 'col-btns';
+    WCOLORS.forEach(function(col) {
+      var cb = document.createElement('button'); cb.className = 'col-btn'+(w.color===col?' sel':''); cb.style.background=col;
+      cb.addEventListener('click', function(){
+        cfg.workers[i].color=col; card.style.borderLeftColor=col; av.style.background=col;
+        cBtns.querySelectorAll('.col-btn').forEach(function(x){x.classList.remove('sel');x.style.transform='';x.style.borderColor='transparent';});
+        cb.classList.add('sel');
+      });
+      cBtns.appendChild(cb);
+    });
+    card.appendChild(cL); card.appendChild(cBtns);
+    container.appendChild(card);
+  });
+}
+
+function addWorker() {
+  cfg.workers.push({name:'새 작업자', icon:'👤', color:WCOLORS[cfg.workers.length%WCOLORS.length], floors:[], role:'사원', perms:{canEdit:false,canDelete:false,canExpect:false,canOutput:false,canReset:false}});
+  lsSet('plt_cfg', JSON.stringify(cfg));
+  renderWorkers();
+  showToast('✅ 작업자 추가됨','ok');
+  setTimeout(function(){var cs=document.querySelectorAll('.wcard');if(cs.length)cs[cs.length-1].scrollIntoView({behavior:'smooth',block:'center'});},100);
+}
+
+/* 층 비번 제거됨 */
+function renderFloorPw(){}
+
+/* ════ 앱 옵션 로드/저장 ════ */
+function loadAppOptions() {
+  var o = cfg.appOptions || {};
+  var ids = ['autoLogin','autoPltNo','autoCourier','autoTab','autoReport','pcDoneHighlight','pcSound','adminCloseAlert','adminNewAlert'];
+  ids.forEach(function(id){ var el=document.getElementById('opt_'+id); if(el) el.checked = o[id]!==undefined ? o[id] : true; });
+  var numIds = ['refreshSec','pcRefresh','adminRefresh'];
+  numIds.forEach(function(id){ var el=document.getElementById('opt_'+id); if(el) el.value = o[id]!==undefined ? o[id] : 10; });
+  var el = document.getElementById('opt_pcSort'); if(el) el.value = o.pcSort||'courier';
+
+}
+
+function collectAppOptions() {
+  var ids = ['autoLogin','autoPltNo','autoCourier','autoTab','autoReport','pcDoneHighlight','pcSound','adminCloseAlert','adminNewAlert'];
+  ids.forEach(function(id){ var el=document.getElementById('opt_'+id); if(el) cfg.appOptions[id]=el.checked; });
+  var numIds = ['refreshSec','pcRefresh','adminRefresh'];
+  numIds.forEach(function(id){ var el=document.getElementById('opt_'+id); if(el) cfg.appOptions[id]=parseInt(el.value)||10; });
+  var el=document.getElementById('opt_pcSort'); if(el) cfg.appOptions.pcSort=el.value;
+
+}
+
+/* ════ 제약사 ════ */
+function renderPharmas() {
+  document.getElementById('pharmaCnt').textContent = cfg.pharmas.length+'개';
+  var html = '';
+  cfg.pharmas.forEach(function(p,i){ html+='<div class="row"><div class="rnum">'+(i+1)+'</div><input class="row-inp" data-pi="'+i+'" value="'+p+'" placeholder="제약사명"><button class="dbtn" onclick="delPharma('+i+')">✕</button></div>'; });
+  document.getElementById('pharmaRows').innerHTML = html;
+}
+function addPharma(){cfg.pharmas.push('새 제약사');renderPharmas();}
+function delPharma(i){if(confirm("'"+cfg.pharmas[i]+"' 삭제?")){cfg.pharmas.splice(i,1);renderPharmas();}}
+
+/* ════ 택배사 ════ */
+function renderCouriers() {
+  var container = document.getElementById('courierRows');
+  container.innerHTML = '';
+  cfg.couriers.forEach(function(c,i) {
+    var div = document.createElement('div'); div.className='courier-item'; div.style.borderLeftColor=c.color;
+    // 상단
+    var top = document.createElement('div'); top.className='courier-top';
+    var ico = document.createElement('span'); ico.style.cssText='font-size:20px;'; ico.textContent=c.icon;
+    var nameInp = document.createElement('input'); nameInp.className='row-inp'; nameInp.style.flex='1'; nameInp.setAttribute('data-ci',i); nameInp.value=c.name; nameInp.placeholder='택배사명';
+    nameInp.addEventListener('input',function(){cfg.couriers[i].name=this.value;});
+    var del = document.createElement('button'); del.className='dbtn'; del.textContent='✕';
+    del.addEventListener('click',function(){if(confirm("'"+cfg.couriers[i].name+"' 삭제?")){cfg.couriers.splice(i,1);renderCouriers();}});
+    top.appendChild(ico); top.appendChild(nameInp); top.appendChild(del); div.appendChild(top);
+    // 아이콘
+    var iL=document.createElement('div');iL.className='section-lbl';iL.textContent='아이콘';
+    var iBtns=document.createElement('div');iBtns.className='icon-sel-btns';
+    CICONS.forEach(function(ico2){var b=document.createElement('button');b.className='icon-btn'+(c.icon===ico2?' sel':'');b.textContent=ico2;b.addEventListener('click',function(){cfg.couriers[i].icon=ico2;ico.textContent=ico2;iBtns.querySelectorAll('.icon-btn').forEach(function(x){x.classList.remove('sel');});b.classList.add('sel');});iBtns.appendChild(b);});
+    div.appendChild(iL);div.appendChild(iBtns);
+    // 색상
+    var cL=document.createElement('div');cL.className='section-lbl';cL.style.marginTop='5px';cL.textContent='색상';
+    var cBtns=document.createElement('div');cBtns.className='col-sm-btns';
+    CCOLORS.forEach(function(col){var cb=document.createElement('button');cb.className='col-btn'+(c.color===col?' sel':'');cb.style.background=col;cb.addEventListener('click',function(){cfg.couriers[i].color=col;div.style.borderLeftColor=col;cBtns.querySelectorAll('.col-btn').forEach(function(x){x.classList.remove('sel');x.style.transform='';x.style.borderColor='transparent';});cb.classList.add('sel');});cBtns.appendChild(cb);});
+    div.appendChild(cL);div.appendChild(cBtns);
+    container.appendChild(div);
+  });
+}
+function addCourier(){cfg.couriers.push({id:'c'+Date.now(),name:'새 택배사',icon:'📦',color:'#3b9eff'});renderCouriers();}
+
+/* ════ 층 현황 ════ */
+function loadFloorStatus() {
+  var raw = lsGet('plt_state');
+  var state = raw ? JSON.parse(raw) : {};
+  var waiting = state.waiting || {};
+  var doneStatus = state.doneStatus || {};
+  var container = document.getElementById('floorStatusBody');
+  container.innerHTML = '';
+  ALL_FLOORS.forEach(function(floor) {
+    var list = waiting[floor]||[];
+    var isDone = doneStatus[floor]||false;
+    var sec = document.createElement('div'); sec.className='floor-sec'; sec.style.marginBottom='8px';
+    var hdr = document.createElement('div'); hdr.className='floor-sec-hdr';
+    var badge = document.createElement('div'); badge.className='floor-sec-badge'; badge.style.background=FCOLORS[floor]; badge.textContent=FN[floor];
+    var cnt = document.createElement('div'); cnt.style.cssText='flex:1;font-size:12px;font-weight:700;';
+    cnt.innerHTML = isDone ? '<span style="color:var(--a3);font-size:11px;font-weight:800">✅ 마감완료</span>' : '대기 <strong style="color:var(--a5)">'+list.length+'</strong>개';
+    hdr.appendChild(badge); hdr.appendChild(cnt);
+    if(isDone){
+      var ub=document.createElement('button');ub.style.cssText='background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.22);color:var(--red);border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;';ub.textContent='마감해제';
+      ub.addEventListener('click',function(){if(!confirm(FN[floor]+' 마감해제?'))return;state.doneStatus=state.doneStatus||{};state.doneStatus[floor]=false;localStorage.setItem('plt_state',JSON.stringify(state));loadFloorStatus();showToast('🔓 마감해제','ok');});
+      hdr.appendChild(ub);
+    }
+    sec.appendChild(hdr);
+    list.forEach(function(p){
+      var row=document.createElement('div');row.className='plt-mini-row';
+      var info=document.createElement('div');info.className='plt-mini-info';
+      info.innerHTML='<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px;">'
+        +'<span style="background:var(--a5);color:#000;border-radius:4px;padding:1px 6px;font-size:11px;font-weight:900;">No.'+p.pltNo+'</span>'
+        +'<span style="background:'+p.courierColor+';color:#fff;border-radius:4px;padding:1px 5px;font-size:10px;font-weight:700;">'+p.courierIcon+p.courierName+'</span>'
+        +'<span style="font-size:10px;color:var(--muted);">'+p.totalBox+'BOX</span>'
+        +'</div>'
+        +'<div style="font-size:10px;color:var(--text);line-height:1.6;">'+p.items.map(function(it){return it.pharma+' <span style="color:var(--muted)">'+it.box+'박스</span>';}).join(' · ')+'</div>';
+      var dBtn=document.createElement('button');dBtn.style.cssText='background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--red);border-radius:6px;padding:4px 8px;font-size:10px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;';dBtn.textContent='🗑 삭제';
+      (function(f,id){dBtn.addEventListener('click',function(){if(!confirm('삭제?'))return;state.waiting=state.waiting||{};state.waiting[f]=(state.waiting[f]||[]).filter(function(x){return x.id!==id;});localStorage.setItem('plt_state',JSON.stringify(state));loadFloorStatus();showToast('삭제됨');});}) (floor,p.id);
+      row.appendChild(info);row.appendChild(dBtn);sec.appendChild(row);
+    });
+    container.appendChild(sec);
+  });
+}
+
+/* ════ 저장 ════ */
+function saveAll() {
+  // 작업자 이름 반영
+  document.querySelectorAll('[data-wi]').forEach(function(inp){var i=parseInt(inp.getAttribute('data-wi'));if(!isNaN(i)&&cfg.workers[i])cfg.workers[i].name=inp.value.trim()||cfg.workers[i].name;});
+  // 작업자 비번 반영
+  document.querySelectorAll('[data-pwi]').forEach(function(inp){var i=parseInt(inp.getAttribute('data-pwi'));if(!isNaN(i)&&cfg.workers[i])cfg.workers[i].password=inp.value;});
+  // 제약사 이름 반영
+  document.querySelectorAll('[data-pi]').forEach(function(inp){var i=parseInt(inp.getAttribute('data-pi'));if(!isNaN(i)&&cfg.pharmas[i]!==undefined)cfg.pharmas[i]=inp.value.trim()||cfg.pharmas[i];});
+  // 택배사 이름 반영
+  document.querySelectorAll('[data-ci]').forEach(function(inp){var i=parseInt(inp.getAttribute('data-ci'));if(!isNaN(i)&&cfg.couriers[i])cfg.couriers[i].name=inp.value.trim()||cfg.couriers[i].name;});
+  // Firebase URL
+  var fbEl=document.getElementById('fbUrl');if(fbEl)cfg.fbUrl=fbEl.value.trim();
+  // 앱 옵션
+  collectAppOptions();
+  // floorSettings 이름 최신화 (DOM에서 읽기)
+  ALL_FLOORS.forEach(function(floor){
+    var cards = document.getElementById('floorSetCards');
+    // nameInp는 renderFloorSet 시 cfg.floorSettings에 직접 반영되므로 별도처리 불필요
+    if(!cfg.floorSettings[floor]) cfg.floorSettings[floor]={name:FN[floor],pharmas:null};
+  });
+  lsSet('plt_cfg', JSON.stringify(cfg));
+  showToast('✅ 저장 완료!','ok');
+}
+
+/* ════ Firebase 동기화 ════ */
+async function syncToFB() {
+  var fbEl=document.getElementById('fbUrl');
+  var url=(fbEl?fbEl.value.trim():'')||cfg.fbUrl;
+  if(!url){showToast('Firebase URL을 먼저 입력하세요','err');return;}
+  showToast('☁️ 동기화 중...');
+  saveAll();
+  try{
+    var res=await fetch(url+'/config.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)});
+    if(res.ok){showToast('✅ Firebase 동기화 완료!','ok');}
+    else{showToast('동기화 실패 ('+res.status+')','err');}
+  }catch(e){showToast('연결 실패: '+e.message,'err');}
+}
+
+async function testFB() {
+  var url=document.getElementById('fbUrl').value.trim();
+  var dot=document.getElementById('fbDot');var txt=document.getElementById('fbStatusTxt');
+  dot.className='fdot fdot-chk';txt.textContent='테스트 중...';
+  try{
+    var r=await fetch(url+'/.json?shallow=true');
+    if(r.ok){dot.className='fdot fdot-ok';txt.textContent='연결 성공! ✅';cfg.fbUrl=url;}
+    else{dot.className='fdot fdot-err';txt.textContent='연결 실패 ('+r.status+')';}
+  }catch(e){dot.className='fdot fdot-err';txt.textContent='연결 실패';}
+}
+
+/* ════ 데이터 ════ */
+function renderDataStats() {
+  var raw=lsGet('plt_state');var state=raw?JSON.parse(raw):{};
+  var waiting=state.waiting||{};var totalPlt=0,totalBox=0;
+  var html='';
+  ALL_FLOORS.forEach(function(f){var fp=0,fb=0;var fd=waiting[f]||[];fd.forEach(function(p){fp++;fb+=p.totalBox||0;totalPlt++;totalBox+=p.totalBox||0;});html+='<div class="stat-row"><span>'+FN[f]+'</span><span class="stat-val">'+fp+'PLT · '+fb+'BOX</span></div>';});
+  html='<div class="stat-row"><span>총 파레트</span><span class="stat-val">'+totalPlt+'PLT</span></div><div class="stat-row"><span>총 BOX</span><span class="stat-val">'+totalBox+'BOX</span></div>'+html;
+  document.getElementById('dataStats').innerHTML=html;
+}
+function exportCSV(){
+  var raw=lsGet('plt_state');var state=raw?JSON.parse(raw):{};var waiting=state.waiting||{};
+  var csv='층,파레트번호,택배사,제약사,BOX수\n';
+  ALL_FLOORS.forEach(function(f){(waiting[f]||[]).forEach(function(p){p.items.forEach(function(it){csv+=FN[f]+',No.'+p.pltNo+','+p.courierName+','+it.pharma+','+it.box+'\n';});});});
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv'}));a.download='파레트_'+new Date().toLocaleDateString('ko')+'.csv';a.click();
+  showToast('📊 CSV 저장됨','ok');
+}
+function exportJSON(){
+  var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([JSON.stringify({cfg:cfg,state:JSON.parse(lsGet('plt_state')||'{}')}),],{type:'application/json'}));a.download='파레트설정_'+new Date().toLocaleDateString('ko')+'.json';a.click();
+  showToast('📥 JSON 저장됨','ok');
+}
+function clearData(){if(confirm('파레트 데이터 초기화?')){lsDel('plt_state');renderDataStats();showToast('🗑 초기화 완료');}}
+function clearAll(){if(confirm('⚠️ 설정 포함 전체 초기화? 복구 불가!')){lsDel('plt_state');lsDel('plt_cfg');location.reload();}}
+
+function showToast(msg,type){
+  var t=document.getElementById('toast');t.textContent=msg;
+  t.className=(type==='ok'?'show ok':type==='err'?'show err':'show');
+  setTimeout(function(){t.className='';},2200);
+}
+
+document.getElementById('settingsDate').textContent=getTodayStr();
+init();
+</script>
+
+</body>
+</html>
