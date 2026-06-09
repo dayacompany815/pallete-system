@@ -995,5 +995,6 @@ loadData();
 setInterval(loadData, 10000);
 </script>
 <div class="overlay" id="reportOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="report-modal" id="reportModal"></div></div>
+<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>
