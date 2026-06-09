@@ -1,0 +1,11 @@
+{
+  "name": "파레트 작업",
+  "short_name": "파레트 작업",
+  "start_url": "worker.html",
+  "display": "standalone",
+  "background_color": "#F2F4F6",
+  "theme_color": "#03C75A",
+  "icons": [
+    { "src": "icon-worker.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

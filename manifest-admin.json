@@ -1,0 +1,11 @@
+{
+  "name": "파레트 관리",
+  "short_name": "파레트 관리",
+  "start_url": "admin.html",
+  "display": "standalone",
+  "background_color": "#F2F4F6",
+  "theme_color": "#5046E5",
+  "icons": [
+    { "src": "icon-admin.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

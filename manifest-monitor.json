@@ -1,0 +1,11 @@
+{
+  "name": "파레트 모니터",
+  "short_name": "파레트 모니터",
+  "start_url": "monitor.html",
+  "display": "standalone",
+  "background_color": "#F2F4F6",
+  "theme_color": "#FF6B00",
+  "icons": [
+    { "src": "icon-monitor.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
