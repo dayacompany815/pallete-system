@@ -197,6 +197,24 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','App
   <!-- 앱 설정 탭 -->
   <div class="tab-page" id="tab-appset">
 
+    <!-- 슬랙 알림 -->
+    <div class="card">
+      <div class="chdr"><div class="cdot" style="background:#4A154B"></div><div class="ctitle">💬 슬랙 출고 알림</div></div>
+      <div class="cbody">
+        <div class="app-block" style="border-left-color:#4A154B">
+          <div class="app-block-title">🔗 Incoming Webhook URL</div>
+          <div class="srow-sub" style="margin-bottom:8px;line-height:1.7;">각 층에서 출고(전송) 시 이 채널로 요약 알림이 전송됩니다.<br>입력 후 <strong>저장 → ☁️ 동기화</strong>를 누르면 모든 작업자에게 적용됩니다.</div>
+          <input class="inp" id="slackWebhook" type="text" placeholder="https://hooks.slack.com/services/..." style="margin-bottom:8px;">
+          <div style="display:flex;gap:6px;">
+            <button class="test-btn" style="flex:1;" onclick="testSlack()">📨 테스트 메시지 전송</button>
+          </div>
+          <div class="note" style="margin-top:8px;">
+            <strong>만드는 법:</strong> api.slack.com/apps → Create New App → From scratch → 워크스페이스 선택 → <strong>Incoming Webhooks</strong> ON → Add New Webhook to Workspace → 채널 선택 → 생성된 URL 복사
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- 작업자 앱 -->
     <div class="card">
       <div class="chdr"><div class="cdot" style="background:var(--a3)"></div><div class="ctitle">📱 작업자 앱 설정</div></div>
@@ -462,6 +480,7 @@ var cfg = {
     {id:'yongma',name:'용마',     icon:'🏎', color:'#2ecc71'}
   ],
   fbUrl: 'https://pallete-system-default-rtdb.asia-southeast1.firebasedatabase.app',
+  slackWebhook: '',
   // 층별 설정: 층마다 사용 제약사 목록, 층 이름
   floorSettings: {
     'B1': {name:'지하1층', pharmas:null},
@@ -489,6 +508,7 @@ function loadCfg() {
       if (c.pharmas && c.pharmas.length) cfg.pharmas = c.pharmas;
       if (c.couriers && c.couriers.length) cfg.couriers = c.couriers;
       if (c.fbUrl !== undefined) cfg.fbUrl = c.fbUrl;
+      if (c.slackWebhook !== undefined) cfg.slackWebhook = c.slackWebhook;
       if (c.floorSettings) cfg.floorSettings = Object.assign(cfg.floorSettings, c.floorSettings);
       if (c.appOptions) cfg.appOptions = Object.assign(cfg.appOptions, c.appOptions);
     } catch(e) {}
@@ -504,6 +524,8 @@ function init() {
   loadAppOptions();
   var fbEl = document.getElementById('fbUrl');
   if (fbEl) fbEl.value = cfg.fbUrl || '';
+  var skEl = document.getElementById('slackWebhook');
+  if (skEl) skEl.value = cfg.slackWebhook || '';
 }
 
 
@@ -1057,6 +1079,8 @@ function saveAll() {
   document.querySelectorAll('[data-ci]').forEach(function(inp){var i=parseInt(inp.getAttribute('data-ci'));if(!isNaN(i)&&cfg.couriers[i])cfg.couriers[i].name=inp.value.trim()||cfg.couriers[i].name;});
   // Firebase URL
   var fbEl=document.getElementById('fbUrl');if(fbEl)cfg.fbUrl=fbEl.value.trim();
+  // 슬랙 웹훅
+  var skEl=document.getElementById('slackWebhook');if(skEl)cfg.slackWebhook=skEl.value.trim();
   // 앱 옵션
   collectAppOptions();
   // floorSettings 이름 최신화 (DOM에서 읽기)
@@ -1081,6 +1105,20 @@ async function syncToFB() {
     if(res.ok){showToast('✅ Firebase 동기화 완료!','ok');}
     else{showToast('동기화 실패 ('+res.status+')','err');}
   }catch(e){showToast('연결 실패: '+e.message,'err');}
+}
+
+/* ════ 슬랙 테스트 ════ */
+function testSlack(){
+  var skEl=document.getElementById('slackWebhook');
+  var url=skEl?skEl.value.trim():'';
+  if(!/^https:\/\/hooks\.slack\.com\//.test(url)){showToast('올바른 슬랙 웹훅 URL을 입력하세요','err');return;}
+  var now=new Date();
+  var hhmm=String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0');
+  var text='✅ *파레트 시스템 연결 테스트*\n슬랙 알림이 정상 연결되었습니다.\n🕐 '+hhmm;
+  try{
+    fetch(url,{method:'POST',mode:'no-cors',body:JSON.stringify({text:text})});
+    showToast('📨 테스트 메시지를 보냈습니다. 슬랙을 확인하세요!','ok');
+  }catch(e){showToast('전송 실패: '+e.message,'err');}
 }
 
 async function testFB() {

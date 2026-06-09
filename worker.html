@@ -426,7 +426,8 @@ var cfg = {
     {id:'cj',name:'CJ',icon:'📫',color:'#f97316'},
     {id:'yongma',name:'용마',icon:'🏎',color:'#2ecc71'}
   ],
-  floorSettings:{}
+  floorSettings:{},
+  slackWebhook:''
 };
 
 
@@ -600,6 +601,34 @@ function loadCfg(){
     if(c.pharmas && c.pharmas.length > 0) cfg.pharmas = c.pharmas;
     if(c.couriers && c.couriers.length > 0) cfg.couriers = c.couriers;
     if(c.floorSettings) cfg.floorSettings = c.floorSettings;
+    if(c.slackWebhook) cfg.slackWebhook = c.slackWebhook;
+  } catch(e) {}
+}
+
+/* Firebase /config 에서 슬랙 웹훅 등 공용 설정 동기화 (1회) */
+function loadCfgFromFB(){
+  fetch(FB_URL + '/config.json')
+    .then(function(r){ return r.json(); })
+    .then(function(c){
+      if(c && typeof c === 'object'){
+        if(c.slackWebhook) cfg.slackWebhook = c.slackWebhook;
+      }
+    }).catch(function(){});
+}
+
+/* 슬랙 출고 알림 (Incoming Webhook) */
+function sendSlackShipment(mov){
+  var url = cfg.slackWebhook;
+  if(!url || !/^https:\/\/hooks\.slack\.com\//.test(url)) return;
+  var totalBox = mov.reduce(function(s,p){ return s + (p.totalBox||0); }, 0);
+  var now = new Date();
+  var hhmm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+  var text = '🚀 *출고 알림 · ' + (FN[currentFloor]||currentFloor) + '*\n'
+    + '👷 작업자: ' + (session && session.name ? session.name : '-') + '\n'
+    + '📦 파레트: ' + mov.length + '개 · ' + totalBox + ' BOX\n'
+    + '🕐 ' + hhmm;
+  try {
+    fetch(url, { method:'POST', mode:'no-cors', body: JSON.stringify({ text: text }) }).catch(function(){});
   } catch(e) {}
 }
 
@@ -1258,6 +1287,8 @@ function sendPallets(){
     body: JSON.stringify(payload)
   }).catch(function(){});
 
+  sendSlackShipment(mov);
+
   syncWaitingToFB();
   saveState();
   renderWaiting();
@@ -1645,6 +1676,8 @@ function sendExpectData(){
 }
 
 window.addEventListener('DOMContentLoaded', function(){
+  loadCfg();
+  loadCfgFromFB();
   // 로그인 버튼들
   document.getElementById('step2Next').addEventListener('click', goStep3);
   document.getElementById('loginBtn').addEventListener('click', doLogin);
