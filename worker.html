@@ -545,7 +545,7 @@ function manualDailyReset(){
 
 /* ════ 직책별 권한 ════ */
 var ROLES = {
-  '사원':   {canEdit:false, canDelete:false, canDailyReset:false, tabs:['input','waiting']},
+  '사원':   {canEdit:false, canDelete:false, canDailyReset:false, tabs:['input','waiting','output']},
   '부팀장': {canEdit:true,  canDelete:true,  canDailyReset:true,  tabs:['input','waiting','expect','output']},
   '팀장':   {canEdit:true,  canDelete:true,  canDailyReset:true,  tabs:['input','waiting','expect','output']}
 };
@@ -589,11 +589,17 @@ function applyRoleUI(){
 
   // 탭 권한 적용 - perms 우선, 없으면 직책 기본값
   var worker2=getMyWorker();
+  var roleTabs=perm.tabs||['input','waiting'];
+  // 직책별 tabs 목록이 기본값, 작업자별 perms(canExpect/canOutput)가 있으면 우선
+  function tabAllowed(tab, permKey){
+    if(worker2&&worker2.perms&&worker2.perms[permKey]!==undefined) return !!worker2.perms[permKey];
+    return roleTabs.indexOf(tab)>=0;
+  }
   var tabMap={
     'input':   true,                // 항상 허용
     'waiting': true,                // 항상 허용
-    'expect':  canDo('canExpect'),
-    'output':  canDo('canOutput')
+    'expect':  tabAllowed('expect','canExpect'),
+    'output':  tabAllowed('output','canOutput')
   };
   ['input','waiting','expect','output'].forEach(function(t){
     var btn=document.getElementById('bn-'+t);
