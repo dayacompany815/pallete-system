@@ -1,7 +1,7 @@
 {
-  "name": "파레트 작업",
-  "short_name": "파레트 작업",
-  "description": "파레트 출고 작업 입력",
+  "name": "출고지기 작업",
+  "short_name": "출고지기작업",
+  "description": "출고지기 작업 — 파레트 출고 작업 입력",
   "start_url": "worker.html",
   "display": "standalone",
   "background_color": "#E8E4DC",

@@ -1,7 +1,7 @@
 {
-  "name": "파레트 설정",
-  "short_name": "파레트 설정",
-  "description": "파레트 시스템 통합 설정",
+  "name": "출고지기 설정",
+  "short_name": "출고지기설정",
+  "description": "출고지기 설정 — 통합 설정관리",
   "start_url": "settings.html",
   "display": "standalone",
   "background_color": "#F2F2F7",

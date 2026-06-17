@@ -3,11 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>파레트 모니터</title>
+<title>출고지기 PC버전</title>
 <link rel="apple-touch-icon" href="icon-monitor.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="파레트 모니터">
+<meta name="apple-mobile-web-app-title" content="출고지기 PC버전">
 <link rel="manifest" href="manifest-monitor.json">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -159,7 +159,7 @@ tfoot td{background:var(--card2);font-weight:800;}
 
 <div class="hdr">
   <div>
-    <div class="hdr-title">📊 출고 파레트 통합현황</div>
+    <div class="hdr-title">📊 출고지기 PC버전</div>
     <div class="hdr-sub">전층 실시간 모니터링 · Firebase 연동</div>
   </div>
   <div class="hdr-r">
@@ -985,7 +985,7 @@ function renderExpect(){
     .then(function(r){return r.json();})
     .then(function(d){
       if(!d||!d.data||!Object.keys(d.data).some(function(k){return d.data[k]>0;})){
-        container.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">📋 예상 데이터가 없습니다<br><small>작업자앱 예상 탭에서 입력해주세요</small></div>';return;
+        container.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">📋 예상 데이터가 없습니다<br><small>출고지기 작업 앱 예상 탭에서 입력해주세요</small></div>';return;
       }
       expectData=d.data||{};
       var expStatus=d.status||{};
