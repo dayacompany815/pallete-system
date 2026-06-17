@@ -1456,6 +1456,22 @@ setInterval(checkAutosave, 60000);
 <div class="overlay" id="reportOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="report-modal" id="reportModal"></div></div>
 <div class="overlay" id="recoveryOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="report-modal" id="recoveryModal"></div></div>
 <div class="overlay" id="pltDetailOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="plt-modal" id="pltDetailModal"></div></div>
-<script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
+<script>
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+(function(){
+  if(window.matchMedia('(display-mode: standalone)').matches || navigator.standalone) return;
+  var dp=null, btn=null;
+  function mkBtn(){
+    if(btn) return;
+    btn=document.createElement('button');
+    btn.textContent='📲 홈 화면에 앱 설치';
+    btn.style.cssText='position:fixed;left:50%;transform:translateX(-50%);bottom:16px;z-index:99999;padding:13px 22px;border:0;border-radius:999px;background:#111;color:#fff;font-size:15px;font-weight:800;box-shadow:0 6px 20px rgba(0,0,0,.35);cursor:pointer';
+    btn.onclick=function(){ if(!dp) return; dp.prompt(); dp.userChoice.finally(function(){ dp=null; if(btn){btn.remove();btn=null;} }); };
+    document.body.appendChild(btn);
+  }
+  window.addEventListener('beforeinstallprompt', function(e){ e.preventDefault(); dp=e; mkBtn(); });
+  window.addEventListener('appinstalled', function(){ if(btn){btn.remove();btn=null;} });
+})();
+</script>
 </body>
 </html>

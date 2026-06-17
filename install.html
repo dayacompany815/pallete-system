@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#111111">
+<title>출고지기 앱 설치</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  body{margin:0;font-family:'Noto Sans KR',system-ui,sans-serif;background:#0f1115;color:#fff;
+       min-height:100vh;padding:24px 16px 48px}
+  .wrap{max-width:480px;margin:0 auto}
+  h1{font-size:24px;font-weight:900;margin:8px 0 4px;text-align:center}
+  .sub{text-align:center;color:#9aa3b2;font-size:14px;margin-bottom:24px}
+  .card{display:flex;align-items:center;gap:14px;background:#1a1d24;border:1px solid #2a2f3a;
+        border-radius:18px;padding:14px 16px;margin-bottom:12px;text-decoration:none;color:#fff;
+        transition:transform .08s}
+  .card:active{transform:scale(.98)}
+  .card img{width:54px;height:54px;border-radius:14px;flex:none;background:#fff}
+  .card .t{flex:1;min-width:0}
+  .card .t b{display:block;font-size:17px;font-weight:800}
+  .card .t span{display:block;font-size:12.5px;color:#9aa3b2;margin-top:2px}
+  .card .go{font-size:13px;font-weight:800;color:#0f1115;background:#fff;border-radius:999px;
+            padding:8px 14px;flex:none}
+  .note{margin-top:20px;background:#14171d;border:1px solid #2a2f3a;border-radius:14px;padding:14px 16px;
+        font-size:13px;line-height:1.7;color:#c7cdd8}
+  .note b{color:#fff}
+  /* 인앱 브라우저 오버레이 */
+  #inapp{position:fixed;inset:0;z-index:9999;background:#0f1115;display:none;
+         flex-direction:column;align-items:center;justify-content:center;padding:28px;text-align:center}
+  #inapp.show{display:flex}
+  #inapp .big{font-size:46px;margin-bottom:14px}
+  #inapp h2{font-size:21px;font-weight:900;margin:0 0 10px}
+  #inapp p{color:#aeb6c4;font-size:14.5px;line-height:1.7;margin:0 0 22px}
+  #inapp .btn{display:block;width:100%;max-width:320px;padding:15px;border:0;border-radius:14px;
+              font-size:16px;font-weight:800;margin:8px 0;cursor:pointer}
+  #inapp .primary{background:#ffe600;color:#111}
+  #inapp .ghost{background:#23262e;color:#fff}
+  #inapp .hint{margin-top:16px;font-size:12.5px;color:#7a8395;line-height:1.6}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>출고지기 앱 설치</h1>
+    <div class="sub">설치할 앱을 눌러 열고, 화면 아래<br><b style="color:#fff">📲 홈 화면에 앱 설치</b> 버튼을 누르세요</div>
+
+    <a class="card" href="worker.html">
+      <img src="icon-work-192.png" alt="">
+      <div class="t"><b>작업</b><span>출고 작업 입력 (작업자용)</span></div>
+      <div class="go">열기 ›</div>
+    </a>
+    <a class="card" href="admin.html">
+      <img src="icon-phone-192.png" alt="">
+      <div class="t"><b>폰 관리자</b><span>전층 관리 대시보드</span></div>
+      <div class="go">열기 ›</div>
+    </a>
+    <a class="card" href="monitor.html">
+      <img src="icon-pc-192.png" alt="">
+      <div class="t"><b>PC 모니터</b><span>출고 통합현황 모니터</span></div>
+      <div class="go">열기 ›</div>
+    </a>
+    <a class="card" href="settings.html">
+      <img src="icon-set-192.png" alt="">
+      <div class="t"><b>설정</b><span>통합 설정관리</span></div>
+      <div class="go">열기 ›</div>
+    </a>
+
+    <div class="note">
+      <b>설치가 안 되나요?</b><br>
+      • 안드로이드는 <b>크롬</b>에서 열어야 설치 버튼이 나옵니다.<br>
+      • 아이폰은 <b>사파리</b>에서 공유 <b>⬆️ → 홈 화면에 추가</b>.<br>
+      • 앱 4개는 서로 다른 앱이라 <b>각각 설치</b>해야 합니다.
+    </div>
+  </div>
+
+  <!-- 카톡 등 인앱 브라우저 안내 -->
+  <div id="inapp">
+    <div class="big">🚫</div>
+    <h2>크롬으로 열어주세요</h2>
+    <p>카카오톡·네이버 등 <b>앱 안의 브라우저</b>에서는<br>앱 설치가 되지 않습니다.<br>크롬으로 열면 설치할 수 있어요.</p>
+    <button class="btn primary" id="openChrome">크롬으로 열기</button>
+    <button class="btn ghost" id="copyUrl">주소 복사하기</button>
+    <div class="hint">버튼이 안 되면 우측 상단 <b>⋮ / 공유</b> →<br>"<b>다른 브라우저로 열기</b>" → Chrome 선택</div>
+  </div>
+
+<script>
+(function(){
+  var ua = navigator.userAgent || '';
+  var inApp = /KAKAOTALK|NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|DaumApps|; wv\)/i.test(ua)
+              || /KAKAOTALK/i.test(ua);
+  var isAndroid = /Android/i.test(ua);
+  if(!inApp) return;
+
+  document.getElementById('inapp').classList.add('show');
+  var url = location.href.split('#')[0];
+
+  document.getElementById('openChrome').onclick = function(){
+    if(isAndroid){
+      // 안드로이드: 크롬 intent 로 강제 전환
+      var host = location.host + location.pathname + location.search;
+      location.href = 'intent://' + host + '#Intent;scheme=https;package=com.android.chrome;end';
+    } else {
+      // iOS 등: 복사로 안내
+      copy();
+      alert('주소를 복사했어요.\n사파리(또는 크롬)를 열고 붙여넣어 주세요.');
+    }
+  };
+  function copy(){
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(url).catch(function(){fallback();});
+    } else { fallback(); }
+    function fallback(){
+      var t=document.createElement('textarea'); t.value=url; document.body.appendChild(t);
+      t.select(); try{document.execCommand('copy');}catch(e){} t.remove();
+    }
+  }
+  document.getElementById('copyUrl').onclick = function(){ copy(); this.textContent='✓ 복사됨 — 크롬에 붙여넣기'; };
+})();
+</script>
+</body>
+</html>
