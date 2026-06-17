@@ -44,8 +44,10 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','App
 
 /* 슬라이더 */
 .pages-outer{overflow:hidden;}
-.pages-slider{display:flex;width:700%;transition:transform .3s cubic-bezier(.4,0,.2,1);}
-.page{width:14.285%;padding:10px 10px 80px;}
+.pages-slider{display:flex;width:900%;transition:transform .3s cubic-bezier(.4,0,.2,1);}
+.page{width:11.111%;padding:10px 10px 80px;}
+.tab-nav{overflow-x:auto;}
+.tab-btn .tab-label{font-size:10px;white-space:nowrap;}
 
 /* 요약 */
 .big-card{background:linear-gradient(135deg,#E8F5EC,#EEF9F1);border:1px solid rgba(3,199,90,.22);border-radius:14px;padding:13px;margin-bottom:10px;position:relative;overflow:hidden;}
@@ -132,24 +134,28 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','App
 </div>
 
 <div class="tab-nav">
-  <button class="tab-btn active" onclick="goTab(0,this)"><span class="tab-icon">📊</span><span class="tab-label">통합</span></button>
-  <button class="tab-btn" onclick="goTab(1,this)"><span class="tab-icon">⏳</span><span class="tab-label">전층대기</span></button>
-  <button class="tab-btn" onclick="goTab(2,this)"><span class="tab-icon">🏢</span><span class="tab-label">층별</span></button>
-  <button class="tab-btn" onclick="goTab(3,this)"><span class="tab-icon">🚚</span><span class="tab-label">택배사</span></button>
-  <button class="tab-btn" onclick="goTab(4,this)"><span class="tab-icon">💊</span><span class="tab-label">제약사</span></button>
-  <button class="tab-btn" onclick="goTab(5,this)"><span class="tab-icon">📋</span><span class="tab-label">예상</span></button>
-  <button class="tab-btn" onclick="goTab(6,this)"><span class="tab-icon">📅</span><span class="tab-label">과거</span></button>
+  <button class="tab-btn active" onclick="goTab(0,this)"><span class="tab-icon">⏳</span><span class="tab-label">대기중</span></button>
+  <button class="tab-btn" onclick="goTab(1,this)"><span class="tab-icon">✅</span><span class="tab-label">출고완료</span></button>
+  <button class="tab-btn" onclick="goTab(2,this)"><span class="tab-icon">🏢</span><span class="tab-label">층별현황</span></button>
+  <button class="tab-btn" onclick="goTab(3,this)"><span class="tab-icon">🏁</span><span class="tab-label">마감현황</span></button>
+  <button class="tab-btn" onclick="goTab(4,this)"><span class="tab-icon">🚚</span><span class="tab-label">택배사</span></button>
+  <button class="tab-btn" onclick="goTab(5,this)"><span class="tab-icon">💊</span><span class="tab-label">제약사</span></button>
+  <button class="tab-btn" onclick="goTab(6,this)"><span class="tab-icon">📈</span><span class="tab-label">통계</span></button>
+  <button class="tab-btn" onclick="goTab(7,this)"><span class="tab-icon">📋</span><span class="tab-label">예상</span></button>
+  <button class="tab-btn" onclick="goTab(8,this)"><span class="tab-icon">📅</span><span class="tab-label">과거</span></button>
 </div>
 
 <div class="pages-outer">
-  <div class="pages-slider" id="slider" style="width:700%">
-    <div class="page" id="page0"></div>
-    <div class="page" id="page1"></div>
-    <div class="page" id="page2"></div>
-    <div class="page" id="page3"></div>
-    <div class="page" id="page4"></div>
-    <div class="page" id="page5"></div>
-    <div class="page" id="page6"></div>
+  <div class="pages-slider" id="slider" style="width:900%">
+    <div class="page" id="pWait"></div>
+    <div class="page" id="pShip"></div>
+    <div class="page" id="pFloor"></div>
+    <div class="page" id="pClose"></div>
+    <div class="page" id="pCourier"></div>
+    <div class="page" id="pPharma"></div>
+    <div class="page" id="pStat"></div>
+    <div class="page" id="pExpect"></div>
+    <div class="page" id="pHist"></div>
   </div>
 </div>
 
@@ -270,9 +276,9 @@ function goTab(idx,btn){
   curTab=idx;
   document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
   btn.classList.add('active');
-  document.getElementById('slider').style.transform='translateX(-'+(idx*14.285)+'%)';;
-  if(idx===5)renderPage5();
-  if(idx===6)renderPage6();;
+  document.getElementById('slider').style.transform='translateX(-'+(idx*(100/9))+'%)';
+  if(idx===7)renderPage5(); // 예상(fetch)
+  if(idx===8)renderPage6(); // 과거(fetch)
 }
 
 function sumAll(filterFloor,filterCourier){
@@ -303,18 +309,20 @@ function sumShipped(filterFloor,filterCourier){
 }
 
 function render(){
-  renderPage0();
-  renderPage1();
-  renderPage2();
-  renderPage3();
-  renderPage4();
+  renderPage1();      // 대기중 → pWait
+  renderShippedA();   // 출고완료 → pShip
+  renderPage2();      // 층별현황 → pFloor
+  renderClosingA();   // 마감현황 → pClose
+  renderPage3();      // 택배사 → pCourier
+  renderPage4();      // 제약사 → pPharma
+  renderPage0();      // 통계 → pStat
 }
 
 
 var expectData2 = {};
 
 function renderPage5(){
-  var container = document.getElementById('page5');
+  var container = document.getElementById('pExpect');
   fetch(FB_URL+'/expect.json')
     .then(function(r){return r.json();})
     .then(function(d){
@@ -390,7 +398,7 @@ function renderPage5(){
 }
 
 function renderPage6(){
-  var container=document.getElementById('page6');
+  var container=document.getElementById('pHist');
   container.innerHTML='<div style="padding:10px"><div style="text-align:center;padding:16px;color:var(--muted)">📅 로딩 중...</div></div>';
   fetch(FB_URL+'/history.json')
     .then(function(r){return r.json();})
@@ -518,7 +526,7 @@ function renderPage0(){
     html+='</div></div>';
   });
   if(!hasAny) html+='<div class="empty"><div class="empty-icon">📭</div>대기 중인 파레트가 없습니다</div>';
-  document.getElementById('page0').innerHTML=html;
+  document.getElementById('pStat').innerHTML=html;
 }
 
 function renderPage1(){
@@ -553,7 +561,7 @@ function renderPage1(){
     }
     html += '</div>';
   });
-  document.getElementById('page1').innerHTML = html || '<div class="empty"><div class="empty-icon">📭</div>대기 중인 파레트가 없습니다</div>';
+  document.getElementById('pWait').innerHTML = html || '<div class="empty"><div class="empty-icon">📭</div>대기 중인 파레트가 없습니다</div>';
 }
 
 function renderPage2(){
@@ -593,7 +601,7 @@ function renderPage2(){
     html+='</div>';
   });
   if(!hasAny) html='<div class="empty"><div class="empty-icon">🏢</div>대기 중인 파레트가 없습니다</div>';
-  document.getElementById('page2').innerHTML=html;
+  document.getElementById('pFloor').innerHTML=html;
 }
 
 function renderPage3(){
@@ -624,7 +632,7 @@ function renderPage3(){
     html+='</div></div>';
   });
   if(!hasAny) html='<div class="empty"><div class="empty-icon">🚚</div>대기 중인 파레트가 없습니다</div>';
-  document.getElementById('page3').innerHTML=html;
+  document.getElementById('pCourier').innerHTML=html;
 }
 
 function renderPage4(){
@@ -640,7 +648,7 @@ function renderPage4(){
     });
   });
   var pharmas=cfg.pharmas.filter(function(p){return pharmaMap[p];});
-  if(pharmas.length===0){document.getElementById('page4').innerHTML='<div class="empty"><div class="empty-icon">💊</div>데이터가 없습니다</div>';return;}
+  if(pharmas.length===0){document.getElementById('pPharma').innerHTML='<div class="empty"><div class="empty-icon">💊</div>데이터가 없습니다</div>';return;}
   pharmas.forEach(function(pname,pi){
     var pm=pharmaMap[pname];
     var color=PC[pi%PC.length];
@@ -659,7 +667,67 @@ function renderPage4(){
     });
     html+='</div></div>';
   });
-  document.getElementById('page4').innerHTML=html;
+  document.getElementById('pPharma').innerHTML=html;
+}
+
+function hhmmA(iso){ if(!iso)return''; var t=new Date(iso); return String(t.getHours()).padStart(2,'0')+':'+String(t.getMinutes()).padStart(2,'0'); }
+
+/* 출고완료 — 층별로 묶어 표시 (엘베/시간/작업자 포함) */
+function renderShippedA(){
+  var byFloor={}; ALL_FLOORS.forEach(function(f){byFloor[f]=[];});
+  Object.keys(shipments||{}).forEach(function(k){
+    var e=shipments[k]; if(!e||!e.pallets) return;
+    e.pallets.forEach(function(p){ if(byFloor[e.floor]) byFloor[e.floor].push({p:p,elev:e.elevatorName,sentAt:e.sentAt,worker:e.worker}); });
+  });
+  var html='', hasAny=false;
+  ALL_FLOORS.forEach(function(f){
+    var rows=byFloor[f]; if(!rows.length) return; hasAny=true;
+    rows.sort(function(a,b){return (a.sentAt||'')<(b.sentAt||'')?-1:1;});
+    var box=rows.reduce(function(s,r){return s+(r.p.totalBox||0);},0);
+    html+='<div class="card"><div class="card-hdr"><div class="c-bar" style="background:'+FCOLORS[f]+'"></div><div class="c-name">'+FN[f]+'</div>'
+      +'<div class="c-total"><div class="c-plt" style="color:var(--a3)">'+rows.length+'PLT</div><div class="c-box">'+box+'BOX</div></div></div><div class="card-body">';
+    rows.forEach(function(r){
+      var p=r.p, c=cfg.couriers.find(function(x){return x.id===p.courierId;})||{color:'#555',icon:'📦',name:p.courierId||''}, ts=hhmmA(r.sentAt);
+      html+='<div class="plt-row"><div class="pr-dot" style="background:'+c.color+'"></div><div class="pr-info">'
+        +'<div class="pr-top"><div class="pr-no">No.'+p.pltNo+'</div><span style="font-size:9px;color:#fff;background:'+c.color+';border-radius:4px;padding:1px 5px;">'+c.icon+c.name+'</span></div>'
+        +'<div class="pr-items">'+(p.items||[]).map(function(it){return it.pharma+'<span class="pr-item-box"> '+it.box+'박스</span>';}).join(' / ')+'</div>'
+        +'<div style="font-size:10px;color:var(--muted);margin-top:2px;">🚀 '+(r.elev||'출고')+(ts?' · '+ts:'')+(r.worker?' · '+r.worker:'')+'</div>'
+        +'</div><div style="text-align:right;flex-shrink:0;font-size:12px;font-weight:900;">'+(p.totalBox||0)+'BOX</div></div>';
+    });
+    html+='</div></div>';
+  });
+  document.getElementById('pShip').innerHTML = hasAny ? html : '<div class="empty"><div class="empty-icon">✅</div>출고된 파레트가 없습니다</div>';
+}
+
+/* 마감현황 — reports(상세 pallets) 우선, 없으면 notifications(요약) */
+function renderClosingA(){
+  var list=[];
+  Object.keys(reports||{}).forEach(function(k){ var r=reports[k]; if(r&&r.type==='closing') list.push(r); });
+  if(list.length===0 && notifications && typeof notifications==='object'){
+    Object.keys(notifications).forEach(function(f){ var n=notifications[f]; if(n&&n.type==='closing') list.push(n); });
+  }
+  if(list.length===0){ document.getElementById('pClose').innerHTML='<div class="empty"><div class="empty-icon">🏁</div>마감된 층이 없습니다</div>'; return; }
+  list.sort(function(a,b){return (a.closedAt||'')<(b.closedAt||'')?1:-1;});
+  var html='';
+  list.forEach(function(r){
+    var pls=r.pallets||[];
+    var plt=pls.length||r.totalPlt||0;
+    var box=pls.length?pls.reduce(function(s,p){return s+(p.totalBox||0);},0):(r.totalBox||0);
+    var ts=hhmmA(r.closedAt);
+    html+='<div class="card"><div class="card-hdr"><div class="c-bar" style="background:'+FCOLORS[r.floor]+'"></div><div class="c-name">🏁 '+FN[r.floor]+' 마감</div>'
+      +'<div class="c-total"><div class="c-plt" style="color:var(--a3)">'+plt+'PLT</div><div class="c-box">'+box+'BOX</div></div></div><div class="card-body">'
+      +'<div style="font-size:11px;color:var(--muted);margin-bottom:6px;">👷 '+(r.worker||'-')+(ts?' · '+ts+' 마감':'')+'</div>';
+    pls.forEach(function(p){
+      var c=cfg.couriers.find(function(x){return x.id===p.courierId;})||{color:'#555',icon:'📦',name:p.courierId||''};
+      html+='<div class="plt-row"><div class="pr-dot" style="background:'+c.color+'"></div><div class="pr-info">'
+        +'<div class="pr-top"><div class="pr-no">No.'+p.pltNo+'</div><span style="font-size:9px;color:#fff;background:'+c.color+';border-radius:4px;padding:1px 5px;">'+c.icon+c.name+'</span></div>'
+        +'<div class="pr-items">'+(p.items||[]).map(function(it){return it.pharma+'<span class="pr-item-box"> '+it.box+'박스</span>';}).join(' / ')+'</div>'
+        +'</div><div style="text-align:right;flex-shrink:0;font-size:12px;font-weight:900;">'+(p.totalBox||0)+'BOX</div></div>';
+    });
+    if(pls.length===0) html+='<div style="font-size:11px;color:var(--muted);">상세 파레트 정보 없음(요약만 저장됨)</div>';
+    html+='</div></div>';
+  });
+  document.getElementById('pClose').innerHTML=html;
 }
 
 /* ── 초기화 (이중 확인 + 신호 전파) ── */

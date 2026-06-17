@@ -184,6 +184,8 @@ tfoot td{background:var(--card2);font-weight:800;}
     🏢 층별현황
   </button>
   <button class="main-tab" id="tab-closing" onclick="switchTab('closing')">🏁 마감현황 <span class="tab-badge purple" id="closeBadge">0</span></button>
+  <button class="main-tab" id="tab-courier" onclick="switchTab('courier')">🚚 택배사</button>
+  <button class="main-tab" id="tab-pharma" onclick="switchTab('pharma')">💊 제약사</button>
   <button class="main-tab" id="tab-summary" onclick="switchTab('summary')">📈 통계</button>
   <button class="main-tab" id="tab-expect" onclick="switchTab('expect')">📋 예상현황</button>
   <button class="main-tab" id="tab-history" onclick="switchTab('history')">📅 과거데이터</button>
@@ -226,6 +228,16 @@ tfoot td{background:var(--card2);font-weight:800;}
   <!-- 마감현황 탭 -->
   <div class="tab-page" id="page-closing">
     <div id="closingContent"></div>
+  </div>
+
+  <!-- 택배사 탭 -->
+  <div class="tab-page" id="page-courier">
+    <div id="courierContent"></div>
+  </div>
+
+  <!-- 제약사 탭 -->
+  <div class="tab-page" id="page-pharma">
+    <div id="pharmaContent"></div>
   </div>
 
   <!-- 통계 탭 -->
@@ -350,6 +362,8 @@ function renderCurrentTab(){
   else if(currentTab==='shipped') renderShipped();
   else if(currentTab==='overview') renderOverview();
   else if(currentTab==='closing') renderClosing();
+  else if(currentTab==='courier') renderCourierTab();
+  else if(currentTab==='pharma') renderPharmaTab();
   else if(currentTab==='summary') renderStatTab();
   else if(currentTab==='expect') renderExpect();
   else if(currentTab==='history') renderHistory();
@@ -885,6 +899,85 @@ function renderStatTab(){
 
 /* ── 예상현황 ── */
 var expectData={};
+/* 택배사별 현황 — 대기+출고 파레트를 택배사로 묶어 표시 */
+function renderCourierTab(){
+  var container=document.getElementById('courierContent');
+  if(!container)return;
+  var html='', hasAny=false;
+  cfg.couriers.forEach(function(c){
+    var rows=[];
+    ALL_FLOORS.forEach(function(f){
+      (waiting[f]||[]).forEach(function(p){ if(p.courierId===c.id) rows.push({p:p,floor:f,status:'wait'}); });
+    });
+    Object.keys(shipments||{}).forEach(function(k){
+      var e=shipments[k]; if(!e||!e.pallets) return;
+      e.pallets.forEach(function(p){ if(p.courierId===c.id) rows.push({p:p,floor:e.floor,status:'ship'}); });
+    });
+    if(rows.length===0) return;
+    hasAny=true;
+    var wp=rows.filter(function(r){return r.status==='wait';}).length;
+    var sp=rows.length-wp;
+    var totBox=rows.reduce(function(s,r){return s+(r.p.totalBox||0);},0);
+    rows.sort(function(a,b){return ALL_FLOORS.indexOf(a.floor)-ALL_FLOORS.indexOf(b.floor)||a.p.pltNo-b.p.pltNo;});
+    html+='<div class="tbl-wrap" style="margin-bottom:14px;border-top:3px solid '+c.color+';">'
+      +'<div class="tbl-title">'+c.icon+' '+c.name
+      +' <span style="float:right;font-weight:800;">⏳'+wp+' · ✅'+sp+' · '+totBox+'BOX</span></div>'
+      +'<div style="padding:8px 12px;">'
+      +rows.map(function(r){ return courierPltRow(r); }).join('')
+      +'</div></div>';
+  });
+  container.innerHTML = hasAny ? html : '<div style="text-align:center;padding:40px;color:var(--muted);">🚚 표시할 파레트가 없습니다</div>';
+}
+function courierPltRow(r){
+  var p=r.p, isShip=r.status==='ship';
+  return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
+    +'<span style="background:'+FCOLORS[r.floor]+';color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;flex-shrink:0;">'+FN[r.floor]+'</span>'
+    +'<span style="font-weight:800;flex-shrink:0;">No.'+p.pltNo+'</span>'
+    +'<span style="flex:1;font-size:12px;color:var(--muted);">'+(p.items||[]).map(function(it){return it.pharma+' '+it.box+'박스';}).join(' / ')+'</span>'
+    +'<span style="font-weight:900;flex-shrink:0;">'+(p.totalBox||0)+'BOX</span>'
+    +'<span style="flex-shrink:0;font-size:11px;font-weight:800;color:'+(isShip?'var(--shipped)':'var(--waiting)')+';">'+(isShip?'✅출고':'⏳대기')+'</span>'
+  +'</div>';
+}
+
+/* 제약사별 현황 — 대기+출고 박스를 제약사로 묶어 표시 */
+function renderPharmaTab(){
+  var container=document.getElementById('pharmaContent');
+  if(!container)return;
+  var pmap={};
+  function add(p,floor,status){
+    (p.items||[]).forEach(function(it){
+      if(!pmap[it.pharma]) pmap[it.pharma]={name:it.pharma,wait:0,ship:0,rows:[]};
+      if(status==='ship') pmap[it.pharma].ship+=it.box; else pmap[it.pharma].wait+=it.box;
+      pmap[it.pharma].rows.push({pltNo:p.pltNo,floor:floor,box:it.box,courierId:p.courierId,status:status});
+    });
+  }
+  ALL_FLOORS.forEach(function(f){ (waiting[f]||[]).forEach(function(p){ add(p,f,'wait'); }); });
+  Object.keys(shipments||{}).forEach(function(k){ var e=shipments[k]; if(e&&e.pallets) e.pallets.forEach(function(p){ add(p,e.floor,'ship'); }); });
+  var names=Object.keys(pmap).sort();
+  if(names.length===0){ container.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);">💊 표시할 데이터가 없습니다</div>'; return; }
+  var html='';
+  names.forEach(function(pname){
+    var pm=pmap[pname], tot=pm.wait+pm.ship;
+    pm.rows.sort(function(a,b){return ALL_FLOORS.indexOf(a.floor)-ALL_FLOORS.indexOf(b.floor)||a.pltNo-b.pltNo;});
+    html+='<div class="tbl-wrap" style="margin-bottom:14px;border-top:3px solid var(--a4);">'
+      +'<div class="tbl-title">💊 '+pname
+      +' <span style="float:right;font-weight:800;">⏳'+pm.wait+' · ✅'+pm.ship+' · 합 '+tot+'BOX</span></div>'
+      +'<div style="padding:8px 12px;">'
+      +pm.rows.map(function(r){
+        var c=cfg.couriers.find(function(x){return x.id===r.courierId;})||{color:'#555',icon:'📦',name:r.courierId||''};
+        return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);">'
+          +'<span style="background:'+FCOLORS[r.floor]+';color:#fff;border-radius:5px;padding:2px 7px;font-size:11px;font-weight:900;flex-shrink:0;">'+FN[r.floor]+'</span>'
+          +'<span style="font-weight:800;flex-shrink:0;">No.'+r.pltNo+'</span>'
+          +'<span style="flex:1;font-size:12px;color:'+c.color+';font-weight:700;">'+c.icon+' '+c.name+'</span>'
+          +'<span style="font-weight:900;flex-shrink:0;">'+r.box+'박스</span>'
+          +'<span style="flex-shrink:0;font-size:11px;font-weight:800;color:'+(r.status==='ship'?'var(--shipped)':'var(--waiting)')+';">'+(r.status==='ship'?'✅':'⏳')+'</span>'
+        +'</div>';
+      }).join('')
+      +'</div></div>';
+  });
+  container.innerHTML=html;
+}
+
 function renderExpect(){
   var container=document.getElementById('expectContent');
   if(!container)return;
