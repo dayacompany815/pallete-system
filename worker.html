@@ -1612,11 +1612,23 @@ function makeShippedCard(s){
 }
 
 function syncWaitingToFB(){
-  fetch(FB_URL + '/waiting.json', {
-    method: 'PUT',
+  // 자기 층만 PATCH — 다른 층 작업자와 동시 입력 시 덮어쓰기 방지
+  var floorData = {};
+  floorData[currentFloor] = waiting[currentFloor] || [];
+  var meta = {updatedAt: new Date().toISOString()};
+  if(doneStatus && Object.keys(doneStatus).length) meta.doneStatus = doneStatus;
+
+  fetch(FB_URL + '/waiting/data.json', {
+    method: 'PATCH',
     headers: {'Content-Type':'application/json'},
-    body: JSON.stringify({data:waiting, updatedAt:new Date().toISOString(), doneStatus:doneStatus})
-  }).catch(function(e){
+    body: JSON.stringify(floorData)
+  }).then(function(){
+    return fetch(FB_URL + '/waiting.json', {
+      method: 'PATCH',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(meta)
+    });
+  }).catch(function(){
     showToast('⚠️ 서버 동기화 실패\n인터넷 연결 확인 후 재시도하세요', 'err');
   });
 }
