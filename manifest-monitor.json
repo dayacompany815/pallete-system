@@ -7,7 +7,7 @@
   "background_color": "#0B0F14",
   "theme_color": "#22D3EE",
   "icons": [
-    { "src": "icon-monitor-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "icon-monitor.png",     "sizes": "512x512", "type": "image/png" }
+    { "src": "icon-pc-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-pc.png",     "sizes": "512x512", "type": "image/png" }
   ]
 }

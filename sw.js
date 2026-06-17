@@ -1,11 +1,11 @@
-const CACHE = 'pallete-v2';
+const CACHE = 'pallete-v3';
 const ASSETS = [
   'worker.html', 'admin.html', 'monitor.html', 'settings.html', 'index.html',
   'css/worker-theme.css', 'css/monitor-theme.css', 'css/admin-theme.css', 'css/settings-theme.css',
-  'icon-worker.png', 'icon-worker-192.png',
-  'icon-admin.png', 'icon-admin-192.png',
-  'icon-monitor.png', 'icon-monitor-192.png',
-  'icon-settings.png', 'icon-settings-192.png',
+  'icon-work.png', 'icon-work-192.png',
+  'icon-phone.png', 'icon-phone-192.png',
+  'icon-pc.png', 'icon-pc-192.png',
+  'icon-set.png', 'icon-set-192.png',
   'manifest-worker.json', 'manifest-admin.json',
   'manifest-monitor.json', 'manifest-settings.json'
 ];
