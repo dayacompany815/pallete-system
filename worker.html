@@ -565,12 +565,14 @@ function manualDailyReset(){
 
 /* ════ 직책별 권한 ════ */
 var ROLES = {
+  'QR':     {canEdit:false, canDelete:false, canDailyReset:false, tabs:['input']},
   '사원':   {canEdit:false, canDelete:false, canDailyReset:false, tabs:['input','waiting','output']},
   '부팀장': {canEdit:true,  canDelete:true,  canDailyReset:true,  tabs:['input','waiting','expect','output']},
   '팀장':   {canEdit:true,  canDelete:true,  canDailyReset:true,  tabs:['input','waiting','expect','output']}
 };
 
 function getMyRole(){
+  if(session.qrMode) return 'QR';
   var worker=null;
   for(var i=0;i<cfg.workers.length;i++){if(cfg.workers[i].name===session.name){worker=cfg.workers[i];break;}}
   return worker&&worker.role?worker.role:'사원';
@@ -600,12 +602,15 @@ function applyRoleUI(){
   // 직책 배지 표시
   var roleBadge=document.getElementById('roleBadge');
   if(roleBadge){
-    var roleColors={'사원':'#5a7a99','부팀장':'#f97316','팀장':'#2ecc71'};
-    roleBadge.textContent=role;
+    var roleColors={'QR':'#f59e0b','사원':'#5a7a99','부팀장':'#f97316','팀장':'#2ecc71'};
+    roleBadge.textContent=role==='QR'?'QR임시접속':role;
     roleBadge.style.background=(roleColors[role]||'#555')+'33';
     roleBadge.style.color=roleColors[role]||'#fff';
     roleBadge.style.borderColor=(roleColors[role]||'#555')+'66';
   }
+  // QR모드: 층 전환바 숨기기
+  var fb=document.getElementById('floorBar');
+  if(fb) fb.style.display=session.qrMode?'none':'';
 
   // 탭 권한 적용 - perms 우선, 없으면 직책 기본값
   var worker2=getMyWorker();
@@ -638,6 +643,33 @@ function applyRoleUI(){
 }
 
 var session = {name:'',floor:'',loggedIn:false};
+
+/* QR 임시접속 — 로그인 없이 해당 층 출고 전용으로 바로 진입 */
+function enterQRMode(floor){
+  loadCfg();
+  loadCfgFromFB();
+  session = {name:'임시접속('+floor+')', floor:floor, loggedIn:true, qrMode:true};
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appScreen').style.display = 'block';
+  document.getElementById('bottomNav').style.display = 'flex';
+  loadState();
+  currentFloor = floor;
+  document.getElementById('appTitle').textContent = FN[floor]||floor;
+  var db=document.getElementById('dateBar');if(db)db.style.display='block';
+  var dt=document.getElementById('dateBarTxt');if(dt)dt.textContent=getTodayStr();
+  document.getElementById('appSub').textContent = 'QR 임시접속 · 출고 전용';
+  var cft=document.getElementById('currentFloorTag');
+  if(cft){cft.textContent=FN[floor]||floor;cft.style.background=FCOLORS[floor]||'#03C75A';}
+  startClock();
+  applyRoleUI();
+  buildInputForm();
+  renderWaiting();
+  updateBadges();
+  updatePltNo();
+  goTab('input');
+  loadAllFromFB(true);
+  setInterval(function(){ loadAllFromFB(); }, 10000);
+}
 var selName = '', selFloor = '';
 var currentFloor = '', currentTab = 'input', inputCourier = 'koryo';
 var waiting = {}, done = {}, doneStatus = {};
@@ -1951,12 +1983,23 @@ window.addEventListener('DOMContentLoaded', function(){
   document.getElementById('csvBtn').addEventListener('click', doCSV);
   document.getElementById('closeReportBtn').addEventListener('click', function(){ hideOverlay('reportOverlay'); });
 
+  // QR 임시접속 감지: ?qr=1&floor=1F
+  var qp = new URLSearchParams(location.search);
+  if(qp.get('qr') === '1'){
+    var qrFloor = qp.get('floor');
+    var validFloors = ['B1','1F','3F','4F','5F'];
+    if(qrFloor && validFloors.indexOf(qrFloor) >= 0){
+      enterQRMode(qrFloor);
+      return;
+    }
+  }
+
   // 세션 복원
   var s = lsGet('plt_session');
   if(s){
     try {
       var d = JSON.parse(s);
-      if(d && d.loggedIn && d.name && d.floor){
+      if(d && d.loggedIn && d.name && d.floor && !d.qrMode){
         session = d;
         enterApp();
         return;

@@ -7,99 +7,136 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <style>
   *{box-sizing:border-box;margin:0;padding:0;}
-  :root{
-    --green:#03C75A; --green-d:#02a64b;
-    --B1:#7b5cff; --1F:#03C75A; --3F:#2d6cdf; --4F:#f5a623; --5F:#e0457b;
-  }
   body{
     font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
-    background:#f0f2f5; padding:32px;
+    background:#1a1a1a;
     -webkit-print-color-adjust:exact; print-color-adjust:exact;
   }
-  h1.page-title{
-    text-align:center; font-size:22px; font-weight:900; color:#1a1a1a;
-    margin-bottom:8px; letter-spacing:-.3px;
+
+  /* 툴바 */
+  .toolbar{
+    position:fixed;top:0;left:0;right:0;z-index:99;
+    background:#111;border-bottom:1px solid #333;
+    padding:12px 24px;display:flex;align-items:center;gap:12px;
   }
-  p.page-sub{text-align:center;font-size:14px;color:#889;margin-bottom:32px;}
+  .toolbar span{color:#aaa;font-size:14px;}
+  .toolbar button{
+    background:#03C75A;color:#fff;border:0;
+    padding:8px 20px;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;
+  }
+  .toolbar button.sec{background:#333;}
 
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1100px;margin:0 auto;}
+  /* 각 층 페이지 — 화면 100vh */
+  .floor-page{
+    width:100vw;height:100vh;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    position:relative;overflow:hidden;
+    page-break-after:always; break-after:page;
+  }
+  .floor-page:last-child{page-break-after:auto;break-after:auto;}
 
+  /* 배경 대형 층 텍스트 */
+  .floor-page .bg-label{
+    position:absolute;
+    font-size:45vw;font-weight:900;opacity:.04;
+    color:#fff;pointer-events:none;user-select:none;
+    letter-spacing:-10px;line-height:1;
+    top:50%;left:50%;transform:translate(-50%,-50%);
+    white-space:nowrap;
+  }
+
+  /* 카드 */
   .card{
-    background:#fff; border-radius:24px; padding:40px 28px 36px;
+    position:relative;z-index:1;
+    background:#fff;border-radius:32px;
+    padding:52px 56px 44px;
     display:flex;flex-direction:column;align-items:center;
-    box-shadow:0 4px 20px rgba(0,0,0,.07);
-    border-top:8px solid var(--green);
-    page-break-inside:avoid; break-inside:avoid;
+    box-shadow:0 20px 60px rgba(0,0,0,.4);
+    border-top:12px solid #03C75A;
+    min-width:380px;
   }
-  .card.c-B1{border-color:#7b5cff;}
-  .card.c-1F{border-color:#03C75A;}
-  .card.c-3F{border-color:#2d6cdf;}
-  .card.c-4F{border-color:#f5a623;}
-  .card.c-5F{border-color:#e0457b;}
 
-  .floor-badge{
-    font-size:13px; font-weight:800; color:#fff; padding:5px 18px;
-    border-radius:40px; margin-bottom:18px; letter-spacing:.5px;
+  /* 층별 색상 */
+  .fp-B1 .card{border-color:#7b5cff;} .fp-B1 .bg-label{color:#7b5cff;}
+  .fp-1F .card{border-color:#03C75A;} .fp-1F .bg-label{color:#03C75A;}
+  .fp-3F .card{border-color:#2d6cdf;} .fp-3F .bg-label{color:#2d6cdf;}
+  .fp-4F .card{border-color:#f5a623;} .fp-4F .bg-label{color:#f5a623;}
+  .fp-5F .card{border-color:#e0457b;} .fp-5F .bg-label{color:#e0457b;}
+
+  .badge{
+    font-size:12px;font-weight:800;color:#fff;
+    padding:5px 18px;border-radius:40px;
+    background:#03C75A;margin-bottom:20px;letter-spacing:.5px;
   }
-  .c-B1 .floor-badge{background:#7b5cff;}
-  .c-1F .floor-badge{background:#03C75A;}
-  .c-3F .floor-badge{background:#2d6cdf;}
-  .c-4F .floor-badge{background:#f5a623;}
-  .c-5F .floor-badge{background:#e0457b;}
+  .fp-B1 .badge{background:#7b5cff;}
+  .fp-3F .badge{background:#2d6cdf;}
+  .fp-4F .badge{background:#f5a623;color:#000;}
+  .fp-5F .badge{background:#e0457b;}
 
-  .floor-name{font-size:44px;font-weight:900;letter-spacing:-1px;margin-bottom:24px;color:#1a1a1a;}
-  .c-B1 .floor-name{color:#7b5cff;}
-  .c-1F .floor-name{color:#03C75A;}
-  .c-3F .floor-name{color:#2d6cdf;}
-  .c-4F .floor-name{color:#f5a623;}
-  .c-5F .floor-name{color:#e0457b;}
+  .floor-label{
+    font-size:72px;font-weight:900;letter-spacing:-2px;
+    margin-bottom:6px;color:#03C75A;
+  }
+  .fp-B1 .floor-label{color:#7b5cff;}
+  .fp-3F .floor-label{color:#2d6cdf;}
+  .fp-4F .floor-label{color:#f5a623;}
+  .fp-5F .floor-label{color:#e0457b;}
+
+  .floor-name{
+    font-size:20px;font-weight:700;color:#667;
+    margin-bottom:32px;
+  }
 
   .qr-wrap{
-    width:220px; height:220px; padding:12px;
-    background:#fff; border-radius:16px;
-    border:2px solid #e5e8eb;
-    display:flex; align-items:center; justify-content:center;
-    margin-bottom:22px;
+    width:280px;height:280px;
+    background:#fff;border-radius:20px;
+    border:3px solid #e5e8eb;
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:28px;
+    padding:8px;
   }
-  .qr-wrap canvas, .qr-wrap img{width:196px!important;height:196px!important;}
+  .qr-wrap canvas,.qr-wrap img{width:260px!important;height:260px!important;}
 
-  .desc{font-size:14px;color:#667;text-align:center;line-height:1.65;}
-  .desc b{color:#1a1a1a;display:block;font-size:16px;margin-bottom:4px;}
+  .desc{
+    text-align:center;font-size:15px;color:#667;
+    line-height:1.7;
+  }
+  .desc b{color:#1a1a1a;font-size:17px;display:block;margin-bottom:4px;}
 
-  .url-text{
-    margin-top:16px; font-size:10px; color:#aab;
-    word-break:break-all; text-align:center; max-width:220px;
+  .brand{
+    position:absolute;bottom:28px;
+    font-size:13px;color:#555;letter-spacing:.3px;
+    z-index:1;
   }
 
   /* 인쇄 */
-  .toolbar{max-width:1100px;margin:0 auto 24px;text-align:right;}
-  .toolbar button{
-    background:#03C75A;color:#fff;border:0;
-    padding:10px 22px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;
-  }
-  @page{size:A4 landscape;margin:12mm;}
+  @page{size:A4;margin:0;}
   @media print{
-    body{background:#fff;padding:0;}
+    body{background:#fff;}
     .toolbar{display:none;}
-    .grid{gap:14px;max-width:100%;}
-    .card{padding:24px 18px;border-radius:16px;}
-    .floor-name{font-size:36px;}
-    .qr-wrap{width:180px;height:180px;}
-    .qr-wrap canvas,.qr-wrap img{width:156px!important;height:156px!important;}
-    h1.page-title{font-size:18px;}
+    .floor-page{height:100vh;page-break-after:always;break-after:page;}
+    .floor-page:last-child{page-break-after:auto;}
+    .bg-label{display:none;}
+    .card{
+      box-shadow:none;
+      padding:40px 48px 36px;
+      border-radius:24px;
+    }
+    .floor-label{font-size:60px;}
+    .qr-wrap{width:260px;height:260px;}
+    .qr-wrap canvas,.qr-wrap img{width:240px!important;height:240px!important;}
   }
 </style>
 </head>
 <body>
 
 <div class="toolbar noprint">
+  <span>📦 출고지기 층별 QR코드</span>
   <button onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+  <button class="sec" onclick="scrollNext()">다음 층 ↓</button>
 </div>
 
-<h1 class="page-title">📦 출고지기 — 층별 접속 QR코드</h1>
-<p class="page-sub">각 층 담당자가 스캔하면 해당 층이 자동 선택된 작업 화면으로 바로 연결됩니다.</p>
-
-<div class="grid" id="grid"></div>
+<div id="pages" style="padding-top:0;"></div>
 
 <script>
 var BASE = 'https://dayacompany815.github.io/pallete-system/worker.html';
@@ -112,21 +149,43 @@ var FLOORS = [
   {id:'5F', name:'5층',     label:'5F'},
 ];
 
-var grid = document.getElementById('grid');
+var pages = document.getElementById('pages');
+var pageEls = [];
 
-FLOORS.forEach(function(fl){
-  var url = BASE + '?floor=' + fl.id;
+FLOORS.forEach(function(fl, idx){
+  var url = BASE + '?qr=1&floor=' + fl.id;
 
+  var page = document.createElement('div');
+  page.className = 'floor-page fp-' + fl.id;
+  pageEls.push(page);
+
+  // 배경 대형 텍스트
+  var bg = document.createElement('div');
+  bg.className = 'bg-label';
+  bg.textContent = fl.label;
+  page.appendChild(bg);
+
+  // 브랜드
+  var brand = document.createElement('div');
+  brand.className = 'brand';
+  brand.textContent = '📦 출고지기 · DAYA COMPANY';
+  page.appendChild(brand);
+
+  // 카드
   var card = document.createElement('div');
-  card.className = 'card c-' + fl.id;
+  card.className = 'card';
 
   var badge = document.createElement('div');
-  badge.className = 'floor-badge';
-  badge.textContent = '출고지기 작업';
+  badge.className = 'badge';
+  badge.textContent = '출고지기 작업 · QR 접속';
+
+  var flabel = document.createElement('div');
+  flabel.className = 'floor-label';
+  flabel.textContent = fl.label;
 
   var fname = document.createElement('div');
   fname.className = 'floor-name';
-  fname.textContent = fl.label;
+  fname.textContent = fl.name + ' 전용';
 
   var wrap = document.createElement('div');
   wrap.className = 'qr-wrap';
@@ -135,27 +194,39 @@ FLOORS.forEach(function(fl){
 
   var desc = document.createElement('div');
   desc.className = 'desc';
-  desc.innerHTML = '<b>' + fl.name + ' 담당자용</b>QR 스캔 → 이름 선택 → 입장';
-
-  var urlText = document.createElement('div');
-  urlText.className = 'url-text';
-  urlText.textContent = url;
+  desc.innerHTML = '<b>QR 스캔 → 바로 입장</b>' + fl.name + ' 파레트 입력 · 출고 전용';
 
   card.appendChild(badge);
+  card.appendChild(flabel);
   card.appendChild(fname);
   card.appendChild(wrap);
   card.appendChild(desc);
-  card.appendChild(urlText);
-  grid.appendChild(card);
+  page.appendChild(card);
+  pages.appendChild(page);
 
   new QRCode(qrDiv, {
     text: url,
-    width: 196,
-    height: 196,
+    width: 260,
+    height: 260,
     colorDark: '#1a1a1a',
     colorLight: '#ffffff',
     correctLevel: QRCode.CorrectLevel.M
   });
+});
+
+var curPage = 0;
+function scrollNext(){
+  curPage = (curPage + 1) % pageEls.length;
+  pageEls[curPage].scrollIntoView({behavior:'smooth'});
+}
+
+// 키보드 방향키로 페이지 이동
+document.addEventListener('keydown', function(e){
+  if(e.key==='ArrowDown'||e.key==='ArrowRight') scrollNext();
+  if(e.key==='ArrowUp'||e.key==='ArrowLeft'){
+    curPage = (curPage - 1 + pageEls.length) % pageEls.length;
+    pageEls[curPage].scrollIntoView({behavior:'smooth'});
+  }
 });
 </script>
 </body>
