@@ -665,13 +665,23 @@ function loadCfg(){
   } catch(e) {}
 }
 
-/* Firebase /config 에서 슬랙 웹훅 등 공용 설정 동기화 (1회) */
+/* Firebase /config 에서 공용 설정(작업자·비번·제약사·택배사·웹훅 등) 동기화 */
 function loadCfgFromFB(){
   fetch(FB_URL + '/config.json')
     .then(function(r){ return r.json(); })
     .then(function(c){
       if(c && typeof c === 'object'){
+        if(c.workers && c.workers.length > 0) cfg.workers = c.workers;
+        if(c.floorPw) cfg.floorPw = c.floorPw;
+        if(c.pharmas && c.pharmas.length > 0) cfg.pharmas = c.pharmas;
+        if(c.couriers && c.couriers.length > 0) cfg.couriers = c.couriers;
+        if(c.floorSettings) cfg.floorSettings = c.floorSettings;
         if(c.slackWebhook) cfg.slackWebhook = c.slackWebhook;
+        // 로컬 캐시에 저장 (오프라인/다음 실행 시 빠르게 반영)
+        lsSet('plt_cfg', JSON.stringify(cfg));
+        // 로그인 화면이 떠 있으면 작업자 목록 다시 그림
+        var ls = document.getElementById('loginScreen');
+        if(ls && ls.style.display !== 'none') renderNameGrid();
       }
     }).catch(function(){});
 }
