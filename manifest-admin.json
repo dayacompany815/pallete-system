@@ -1,8 +1,10 @@
 {
+  "id": "/pallete-system/admin.html",
   "name": "출고지기 폰버전",
   "short_name": "출고지기폰",
   "description": "출고지기 폰버전 — 파레트 전층 관리자 대시보드",
   "start_url": "admin.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#EEF2FF",
   "theme_color": "#6366F1",

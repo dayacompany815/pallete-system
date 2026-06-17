@@ -1,8 +1,10 @@
 {
+  "id": "/pallete-system/monitor.html",
   "name": "출고지기 PC버전",
   "short_name": "출고지기PC",
   "description": "출고지기 PC버전 — 출고 파레트 통합현황",
   "start_url": "monitor.html",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#0B0F14",
   "theme_color": "#22D3EE",
