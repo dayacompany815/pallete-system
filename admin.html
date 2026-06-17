@@ -191,7 +191,7 @@ function loadCfgLocal(){
 
 
 function checkResetSignalAdmin(){
-  fetch(FB_URL+'/reset_signal.json')
+  fetch(FB_URL+'/reset_signal.json?t='+Date.now())
     .then(function(r){return r.json();})
     .then(function(d){
       if(!d||!d.resetAt) return;
@@ -229,7 +229,7 @@ async function loadData(){
   try{
     // reset_signal 감지
     try{
-      var rs=await fetch(FB_URL+'/reset_signal.json');
+      var rs=await fetch(FB_URL+'/reset_signal.json?t='+Date.now());
       var sig=await rs.json();
       if(sig&&sig.resetAt){
         var lastReset=lsGet('plt_admin_last_reset');
@@ -242,17 +242,18 @@ async function loadData(){
         }
       }
     }catch(e2){}
-    var r=await fetch(FB_URL+'/waiting.json');
+    var _t=Date.now();
+    var r=await fetch(FB_URL+'/waiting.json?t='+_t);
     var d=await r.json();
     if(d){if(d.data)waiting=d.data;if(d.doneStatus)doneStatus=d.doneStatus;}
-    var r2=await fetch(FB_URL+'/notifications.json');
+    var r2=await fetch(FB_URL+'/notifications.json?t='+_t);
     var d2=await r2.json();
     if(d2)notifications=d2||{};
     // 출고완료 + 마감 보고서 (모니터와 동일 데이터)
-    var r3=await fetch(FB_URL+'/shipments.json');
+    var r3=await fetch(FB_URL+'/shipments.json?t='+_t);
     var d3=await r3.json();
     shipments=d3||{};
-    var r4=await fetch(FB_URL+'/reports.json');
+    var r4=await fetch(FB_URL+'/reports.json?t='+_t);
     var d4=await r4.json();
     reports=d4||{};
     var now=new Date();

@@ -279,20 +279,21 @@ function loadCfgLocal(){
 async function loadData(isAuto){
   loadCfgLocal();
   try{
-    var r1 = await fetch(FB_URL+'/waiting.json');
+    var _t = Date.now();
+    var r1 = await fetch(FB_URL+'/waiting.json?t='+_t);
     var d1 = await r1.json();
     if(d1){
       if(d1.data) waiting = d1.data;
       if(d1.doneStatus) doneStatus = d1.doneStatus;
     }
-    var r2 = await fetch(FB_URL+'/shipments.json');
+    var r2 = await fetch(FB_URL+'/shipments.json?t='+_t);
     var d2 = await r2.json();
     shipments = d2 || {};
-    var r3 = await fetch(FB_URL+'/notifications.json');
+    var r3 = await fetch(FB_URL+'/notifications.json?t='+_t);
     var d3 = await r3.json();
     notifications = d3 || {};
     closingReports = notifications;
-    var r4 = await fetch(FB_URL+'/reports.json');
+    var r4 = await fetch(FB_URL+'/reports.json?t='+_t);
     var d4 = await r4.json();
     reports = d4 || {};
 

@@ -914,6 +914,7 @@ function enterApp(){
   updatePltNo();
   goTab('input');
 
+  loadAllFromFB(true); // 로그인 직후 자기 층 포함 FB 동기화(다른 기기/작업자 데이터 반영)
   setInterval(function(){ loadAllFromFB(); }, 10000);
 }
 
@@ -932,6 +933,7 @@ function switchFloor(f){
   renderAllFloors();
   updateBadges();
   updatePltNo();
+  loadAllFromFB(true); // 전환한 층의 최신 FB 데이터 병합(다른 작업자 입력 반영)
 }
 
 function goTab(tab){
@@ -1470,9 +1472,20 @@ function syncWaitingToFB(){
   });
 }
 
-function loadAllFromFB(){
+// 두 파레트 배열을 id 기준으로 병합 (로컬 우선 = 미동기화 데이터 보호, 원격 신규는 추가)
+function mergeWaitingById(localArr, fbArr){
+  var map = {};
+  (fbArr||[]).forEach(function(p){ if(p && p.id!=null) map[p.id] = p; });
+  (localArr||[]).forEach(function(p){ if(p && p.id!=null) map[p.id] = p; });
+  var out = Object.keys(map).map(function(k){ return map[k]; });
+  out.sort(function(a,b){ return (a.ts||'') < (b.ts||'') ? -1 : 1; });
+  return out;
+}
+
+// includeCurrent=true → 자기 층도 FB에서 병합(로그인/층전환 시). 평상시(10초 폴링)에는 자기 층 편집 보호를 위해 제외
+function loadAllFromFB(includeCurrent){
   // reset_signal 감지 먼저 확인
-  fetch(FB_URL + '/reset_signal.json')
+  fetch(FB_URL + '/reset_signal.json?t=' + Date.now())
     .then(function(r){return r.json();})
     .then(function(sig){
       if(sig && sig.resetAt){
@@ -1493,14 +1506,24 @@ function loadAllFromFB(){
       }
     }).catch(function(){});
 
-  fetch(FB_URL + '/waiting.json')
+  fetch(FB_URL + '/waiting.json?t=' + Date.now())
     .then(function(r){ return r.json(); })
     .then(function(d){
       if(d && d.data){
         ALL_FLOORS.forEach(function(f){
-          if(f !== currentFloor && d.data[f]) waiting[f] = d.data[f];
+          if(f === currentFloor){
+            // 자기 층: 로그인/층전환 시에만 FB와 병합(원격 신규 파레트가 보이도록)
+            if(includeCurrent) waiting[f] = mergeWaitingById(waiting[f], d.data[f]);
+          } else if(d.data[f]){
+            waiting[f] = d.data[f];
+          }
         });
         if(d.doneStatus) Object.assign(doneStatus, d.doneStatus);
+      }
+      if(includeCurrent){
+        saveState();
+        renderWaiting();
+        updatePltNo();
       }
       renderAllFloors();
       updateBadges();
