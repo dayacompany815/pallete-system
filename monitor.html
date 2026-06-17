@@ -134,10 +134,25 @@ tfoot td{background:var(--card2);font-weight:800;}
 .kpi-val{font-size:28px;font-weight:900;line-height:1;}
 .kpi-sub{font-size:10px;color:var(--muted);margin-top:3px;}
 
-/* 리포트 오버레이 */
-.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;display:none;align-items:center;justify-content:center;padding:20px;}
+/* 오버레이 */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:500;display:none;align-items:center;justify-content:center;padding:16px;}
 .overlay.show{display:flex;}
-.report-modal{background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:600px;max-height:85vh;overflow-y:auto;}
+.report-modal{background:var(--card);border-radius:16px;padding:20px;width:100%;max-width:600px;max-height:88vh;overflow-y:auto;}
+
+/* 파레트 상세 모달 */
+.plt-modal{background:var(--card);border-radius:18px;width:100%;max-width:360px;overflow:hidden;box-shadow:0 24px 64px rgba(0,0,0,.5);}
+.plt-modal-hdr{padding:16px 18px;display:flex;align-items:center;gap:10px;}
+.plt-modal-body{padding:14px 18px 18px;}
+.plt-modal-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px;}
+.plt-modal-row:last-child{border-bottom:none;}
+.plt-modal-lbl{color:var(--muted);font-weight:600;}
+.plt-modal-val{font-weight:800;}
+.plt-modal-item{display:flex;justify-content:space-between;padding:5px 10px;border-radius:7px;font-size:12px;margin-bottom:4px;}
+.plt-modal-close{width:100%;margin-top:14px;background:var(--card2);border:1px solid var(--border);color:var(--text);border-radius:10px;padding:11px;font-size:14px;font-weight:800;cursor:pointer;font-family:inherit;}
+.plt-card{cursor:pointer;transition:opacity .15s;}
+.plt-card:hover{opacity:.88;}
+.floor-card{cursor:pointer;transition:opacity .15s;}
+.floor-card:hover{opacity:.88;}
 </style>
 </head>
 <body>
@@ -400,6 +415,40 @@ function makeSVG(color, isShipped){
     +'</svg>';
 }
 
+/* 파레트 상세 팝업 */
+function showPltDetail(p, status, fbKey){
+  var c = cfg.couriers.find(function(x){return x.id===p.courierId;})||{color:'#555',icon:'📦',name:p.courierId||''};
+  var isShipped = status==='shipped';
+  var sentTime = '';
+  if(isShipped && p.sentAt){ var t=new Date(p.sentAt); sentTime=pad(t.getHours())+':'+pad(t.getMinutes()); }
+  var html = '<div class="plt-modal-hdr" style="background:'+c.color+'22;border-bottom:3px solid '+c.color+';">'
+    +'<div style="background:'+c.color+';color:#fff;border-radius:8px;padding:4px 12px;font-size:13px;font-weight:900;">'+c.icon+' '+c.name+'</div>'
+    +(p.floor?'<div style="background:'+FCOLORS[p.floor]+';color:#fff;border-radius:7px;padding:4px 10px;font-size:12px;font-weight:900;">'+FN[p.floor]+'</div>':'')
+    +'<div style="margin-left:auto;font-size:18px;font-weight:900;color:'+(isShipped?'var(--shipped)':'var(--waiting)')+';">No.'+p.pltNo+'</div>'
+    +'</div>'
+    +'<div class="plt-modal-body">'
+    +'<div class="plt-modal-row"><span class="plt-modal-lbl">상태</span><span class="plt-modal-val" style="color:'+(isShipped?'var(--shipped)':'var(--waiting)')+';">'+(isShipped?'✅ 출고완료':'⏳ 대기중')+'</span></div>';
+  if(isShipped && sentTime) html+='<div class="plt-modal-row"><span class="plt-modal-lbl">출고시간</span><span class="plt-modal-val">🕐 '+sentTime+'</span></div>';
+  if(isShipped && ELEVATORS[p.elevator]) html+='<div class="plt-modal-row"><span class="plt-modal-lbl">엘리베이터</span><span class="plt-modal-val">'+(ELEV_EMOJI[p.elevator]||'🛗')+' '+ELEVATORS[p.elevator]+'</span></div>';
+  if(isShipped && p.worker) html+='<div class="plt-modal-row"><span class="plt-modal-lbl">작업자</span><span class="plt-modal-val">👷 '+p.worker+'</span></div>';
+  html+='<div style="margin:10px 0 6px;font-size:11px;color:var(--muted);font-weight:700;">📦 제약사별 박스</div>';
+  (p.items||[]).forEach(function(it){
+    html+='<div class="plt-modal-item" style="background:var(--card2);">'
+      +'<span style="font-weight:700;">'+it.pharma+'</span>'
+      +'<span style="font-weight:900;color:var(--a1);">'+it.box+'BOX</span>'
+      +'</div>';
+  });
+  html+='<div class="plt-modal-row" style="margin-top:4px;"><span class="plt-modal-lbl">총 BOX</span>'
+    +'<span class="plt-modal-val" style="font-size:20px;color:'+(isShipped?'var(--shipped)':'var(--text)')+';">'+p.totalBox+'BOX</span></div>';
+  if(isShipped && fbKey && p.floor){
+    html+='<button onclick="returnToWaiting(\''+fbKey+'\',\''+p.floor+'\','+p.pltNo+');document.getElementById(\'pltDetailOverlay\').classList.remove(\'show\');" style="width:100%;margin-top:10px;background:rgba(249,115,22,.1);border:1.5px solid rgba(249,115,22,.3);color:var(--a2);border-radius:9px;padding:9px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;">↩ 대기로 되돌리기</button>';
+  }
+  html+='<button class="plt-modal-close" onclick="document.getElementById(\'pltDetailOverlay\').classList.remove(\'show\')">닫기</button>'
+    +'</div>';
+  document.getElementById('pltDetailModal').innerHTML = html;
+  document.getElementById('pltDetailOverlay').classList.add('show');
+}
+
 /* 파레트 카드 생성 */
 function makePltCard(p, status, fbKey){
   var c = cfg.couriers.find(function(x){return x.id===p.courierId;})||{color:'#555',icon:'📦',name:p.courierId||''};
@@ -461,15 +510,10 @@ function makePltCard(p, status, fbKey){
   bot.appendChild(det);
   card.appendChild(bot);
 
-  // 되돌리기 버튼 (출고완료만)
-  if(isShipped && fbKey && p.floor){
-    var retBtn = document.createElement('button');
-    retBtn.className = 'return-btn';
-    retBtn.textContent = '↩ '+FN[p.floor]+' 대기로 되돌리기';
-    var keyCopy=fbKey, floorCopy=p.floor, pltCopy=p.pltNo;
-    retBtn.addEventListener('click', function(){ returnToWaiting(keyCopy, floorCopy, pltCopy); });
-    card.appendChild(retBtn);
-  }
+  // 카드 클릭 → 상세 팝업
+  var pCopy=p, sCopy=status, kCopy=fbKey;
+  card.addEventListener('click', function(){ showPltDetail(pCopy, sCopy, kCopy); });
+
   return card;
 }
 
@@ -632,7 +676,8 @@ function renderOverview(){
       if(e&&e.floor===floor&&e.pallets) sList=sList.concat(e.pallets);
     });
     var isDone = doneStatus[floor]||false;
-    html += '<div class="floor-card'+(isDone?' done':'')+'"><div class="floor-card-hdr">'
+    html += '<div class="floor-card'+(isDone?' done':'')+'" onclick="showFloorDetail(\''+floor+'\')">'
+      +'<div class="floor-card-hdr">'
       +'<div class="floor-badge" style="background:'+FCOLORS[floor]+'">'+FN[floor]+'</div>'
       +(isDone?'<span style="font-size:10px;font-weight:800;color:var(--a3);margin-left:auto;">✅마감</span>':'')
       +'</div><div class="floor-card-body">'
@@ -640,6 +685,7 @@ function renderOverview(){
       +'<div class="floor-stat-row"><span class="floor-stat-label">✅ 출고</span><span class="floor-stat-val" style="color:var(--shipped)">'+sList.length+'PLT</span></div>'
       +'<div class="floor-stat-row"><span class="floor-stat-label">대기BOX</span><span class="floor-stat-val">'+wList.reduce(function(s,p){return s+p.totalBox;},0)+'</span></div>'
       +'<div class="floor-stat-row"><span class="floor-stat-label">출고BOX</span><span class="floor-stat-val">'+sList.reduce(function(s,p){return s+p.totalBox;},0)+'</span></div>'
+      +'<div style="margin-top:6px;font-size:10px;color:var(--a1);font-weight:700;text-align:center;">👆 클릭해서 상세보기</div>'
       +'</div></div>';
   });
   html += '</div>';
@@ -658,6 +704,58 @@ function renderOverview(){
   });
   html += '</tbody></table></div>';
   container.innerHTML = html;
+}
+
+/* 층 상세 팝업 */
+function showFloorDetail(floor){
+  var wList = waiting[floor]||[];
+  var sList = [];
+  Object.keys(shipments).forEach(function(k){
+    var e=shipments[k];if(e&&e.floor===floor&&e.pallets)sList=sList.concat(e.pallets.map(function(p){return Object.assign({},p,{sentAt:e.sentAt,elevator:e.elevator,fbKey:k,worker:e.worker});}));
+  });
+  var isDone = doneStatus[floor]||false;
+  var totalWB=wList.reduce(function(s,p){return s+p.totalBox;},0);
+  var totalSB=sList.reduce(function(s,p){return s+p.totalBox;},0);
+
+  var html='<div class="plt-modal-hdr" style="background:'+FCOLORS[floor]+'22;border-bottom:3px solid '+FCOLORS[floor]+'">'
+    +'<div style="background:'+FCOLORS[floor]+';color:#fff;border-radius:8px;padding:5px 14px;font-size:15px;font-weight:900;">🏢 '+FN[floor]+'</div>'
+    +(isDone?'<span style="margin-left:auto;font-size:12px;font-weight:800;color:var(--a3);">✅ 마감완료</span>':'<span style="margin-left:auto;font-size:12px;font-weight:700;color:var(--waiting);">⏳ 진행중</span>')
+    +'</div><div class="plt-modal-body">'
+    +'<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">'
+      +'<div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:9px;padding:10px;text-align:center;">'
+        +'<div style="font-size:10px;color:var(--waiting);font-weight:700;">⏳ 대기중</div>'
+        +'<div style="font-size:24px;font-weight:900;color:var(--waiting);">'+wList.length+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);">'+totalWB+'BOX</div></div>'
+      +'<div style="background:rgba(46,204,113,.08);border:1px solid rgba(46,204,113,.2);border-radius:9px;padding:10px;text-align:center;">'
+        +'<div style="font-size:10px;color:var(--shipped);font-weight:700;">✅ 출고완료</div>'
+        +'<div style="font-size:24px;font-weight:900;color:var(--shipped);">'+sList.length+'</div>'
+        +'<div style="font-size:11px;color:var(--muted);">'+totalSB+'BOX</div></div>'
+    +'</div>';
+
+  if(wList.length>0){
+    html+='<div style="font-size:11px;color:var(--waiting);font-weight:800;margin-bottom:5px;">⏳ 대기 파레트</div>';
+    wList.forEach(function(p){
+      var c=cfg.couriers.find(function(x){return x.id===p.courierId;})||{color:'#555',icon:'📦',name:p.courierId||''};
+      html+='<div class="plt-modal-item" style="background:var(--card2);margin-bottom:3px;cursor:pointer;" onclick="closeCourierModal();showPltDetail('+JSON.stringify(Object.assign({},p,{floor:floor}))+',\'waiting\',null);">'
+        +'<span><span style="background:'+c.color+';color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px;">'+c.icon+' '+c.name+'</span>No.'+p.pltNo+'</span>'
+        +'<span style="font-weight:900;color:var(--waiting);">'+p.totalBox+'BOX</span></div>';
+    });
+  }
+  if(sList.length>0){
+    html+='<div style="font-size:11px;color:var(--shipped);font-weight:800;margin:10px 0 5px;">✅ 출고완료 파레트</div>';
+    sList.sort(function(a,b){return a.pltNo-b.pltNo;}).forEach(function(p){
+      var c=cfg.couriers.find(function(x){return x.id===p.courierId;})||{color:'#555',icon:'📦',name:p.courierId||''};
+      var t=p.sentAt?new Date(p.sentAt):null;var ts=t?pad(t.getHours())+':'+pad(t.getMinutes()):'';
+      html+='<div class="plt-modal-item" style="background:rgba(46,204,113,.06);margin-bottom:3px;cursor:pointer;" onclick="closeCourierModal();showPltDetail('+JSON.stringify(Object.assign({},p,{floor:floor}))+',\'shipped\',\''+p.fbKey+'\');">'
+        +'<span><span style="background:'+c.color+';color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:700;margin-right:5px;">'+c.icon+' '+c.name+'</span>No.'+p.pltNo+'</span>'
+        +(ts?'<span style="font-size:10px;color:var(--muted);">🕐'+ts+'</span>':'')
+        +'<span style="font-weight:900;color:var(--shipped);">'+p.totalBox+'BOX</span></div>';
+    });
+  }
+  if(wList.length===0&&sList.length===0) html+='<div style="text-align:center;padding:20px;color:var(--muted);">파레트 없음</div>';
+  html+='<button class="plt-modal-close" onclick="closeCourierModal()">닫기</button></div>';
+  document.getElementById('pltDetailModal').innerHTML=html;
+  document.getElementById('pltDetailOverlay').classList.add('show');
 }
 
 /* 되돌리기 */
@@ -880,22 +978,27 @@ function renderKPI(){
   Object.keys(shipments).forEach(function(k){var e=shipments[k];if(e&&e.pallets)e.pallets.forEach(function(p){sp++;sb+=p.totalBox||0;});});
   var doneCnt=ALL_FLOORS.filter(function(f){return doneStatus[f];}).length;
   var kpis=[
-    {icon:'⏳',label:'대기중',val:wp+'PLT',sub:wb+'BOX',col:'var(--waiting)'},
-    {icon:'✅',label:'출고완료',val:sp+'PLT',sub:sb+'BOX',col:'var(--shipped)'},
-    {icon:'📦',label:'총 BOX',val:wb+sb,sub:'대기+출고',col:'var(--a1)'},
-    {icon:'🏁',label:'마감완료',val:doneCnt+'/'+ALL_FLOORS.length+'층',sub:'',col:'var(--a4)'},
+    {icon:'⏳',label:'대기중',val:wp+'PLT',sub:wb+'BOX',col:'var(--waiting)',action:function(){switchTab('waiting');setFloor('all',document.querySelector('[data-floor="all"]'));}},
+    {icon:'✅',label:'출고완료',val:sp+'PLT',sub:sb+'BOX',col:'var(--shipped)',action:function(){switchTab('shipped');}},
+    {icon:'📦',label:'총 BOX',val:wb+sb,sub:'대기+출고',col:'var(--a1)',action:function(){switchTab('summary');}},
+    {icon:'🏁',label:'마감완료',val:doneCnt+'/'+ALL_FLOORS.length+'층',sub:'',col:'var(--a4)',action:function(){switchTab('closing');}},
   ];
   cfg.couriers.forEach(function(c){
     var cw=0,cwb=0,cs=0,csb=0;
     ALL_FLOORS.forEach(function(f){(waiting[f]||[]).forEach(function(p){if(p.courierId===c.id){cw++;cwb+=p.totalBox||0;}});});
     Object.keys(shipments).forEach(function(k){var e=shipments[k];if(e&&e.pallets)e.pallets.forEach(function(p){if(p.courierId===c.id){cs++;csb+=p.totalBox||0;}});});
-    kpis.push({icon:c.icon,label:c.name,val:'⏳'+cw+' / ✅'+cs,sub:'BOX '+(cwb+csb),col:c.color,twoLine:true});
+    (function(courier){
+      kpis.push({icon:courier.icon,label:courier.name,val:'⏳'+cw+' / ✅'+cs,sub:'BOX '+(cwb+csb),col:courier.color,twoLine:true,
+        action:function(){ showCourierDetail(courier); }});
+    })(c);
   });
   var html='';
-  kpis.forEach(function(k){
+  kpis.forEach(function(k,i){
+    var onclick='(kpiActions['+i+'])()';
+    var baseStyle='background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;border-top:3px solid '+k.col+';cursor:pointer;transition:opacity .15s;';
     if(k.twoLine){
       var parts=k.val.split(' / ');
-      html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;border-top:3px solid '+k.col+';">'
+      html+='<div style="'+baseStyle+'" onclick="(kpiActions['+i+'])()">'
         +'<div style="font-size:18px;margin-bottom:4px;">'+k.icon+'</div>'
         +'<div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:5px;">'+k.label+'</div>'
         +'<div style="display:flex;gap:6px;align-items:center;">'
@@ -906,7 +1009,7 @@ function renderKPI(){
         +'<div style="font-size:10px;color:var(--muted);margin-top:4px;">'+k.sub+'</div>'
       +'</div>';
     } else {
-      html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px 14px;border-top:3px solid '+k.col+';">'
+      html+='<div style="'+baseStyle+'" onclick="(kpiActions['+i+'])()">'
         +'<div style="font-size:18px;margin-bottom:4px;">'+k.icon+'</div>'
         +'<div style="font-size:10px;color:var(--muted);font-weight:600;margin-bottom:3px;">'+k.label+'</div>'
         +'<div style="font-size:26px;font-weight:900;line-height:1;color:'+k.col+';">'+k.val+'</div>'
@@ -915,7 +1018,48 @@ function renderKPI(){
     }
   });
   kpiEl.innerHTML=html;
+  window.kpiActions = kpis.map(function(k){return k.action;});
 }
+
+/* 택배사 상세 팝업 */
+function showCourierDetail(courier){
+  var waitPallets=[], shipPallets=[];
+  ALL_FLOORS.forEach(function(f){
+    (waiting[f]||[]).forEach(function(p){if(p.courierId===courier.id) waitPallets.push(Object.assign({},p,{floor:f}));});
+  });
+  Object.keys(shipments).forEach(function(k){
+    var e=shipments[k];if(e&&e.pallets)e.pallets.forEach(function(p){if(p.courierId===courier.id) shipPallets.push(Object.assign({},p,{floor:e.floor,sentAt:e.sentAt,elevator:e.elevator,fbKey:k}));});
+  });
+  var totalWB=waitPallets.reduce(function(s,p){return s+p.totalBox;},0);
+  var totalSB=shipPallets.reduce(function(s,p){return s+p.totalBox;},0);
+  var html='<div class="plt-modal-hdr" style="background:'+courier.color+'22;border-bottom:3px solid '+courier.color+';">'
+    +'<div style="background:'+courier.color+';color:#fff;border-radius:8px;padding:5px 14px;font-size:14px;font-weight:900;">'+courier.icon+' '+courier.name+'</div>'
+    +'<div style="margin-left:auto;font-size:12px;color:var(--muted);">⏳'+waitPallets.length+' / ✅'+shipPallets.length+'PLT</div>'
+    +'</div><div class="plt-modal-body">';
+  if(waitPallets.length>0){
+    html+='<div style="font-size:11px;color:var(--waiting);font-weight:800;margin-bottom:6px;">⏳ 대기중 '+waitPallets.length+'PLT · '+totalWB+'BOX</div>';
+    waitPallets.sort(function(a,b){return ALL_FLOORS.indexOf(a.floor)-ALL_FLOORS.indexOf(b.floor)||a.pltNo-b.pltNo;}).forEach(function(p){
+      html+='<div class="plt-modal-item" style="background:var(--card2);margin-bottom:3px;cursor:pointer;" onclick="closeCourierModal();showPltDetail('+JSON.stringify(p)+',\'waiting\',null);">'
+        +'<span><span style="background:'+FCOLORS[p.floor]+';color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;margin-right:6px;">'+FN[p.floor]+'</span>No.'+p.pltNo+'</span>'
+        +'<span style="font-weight:900;color:var(--waiting);">'+p.totalBox+'BOX</span></div>';
+    });
+  }
+  if(shipPallets.length>0){
+    html+='<div style="font-size:11px;color:var(--shipped);font-weight:800;margin:10px 0 6px;">✅ 출고완료 '+shipPallets.length+'PLT · '+totalSB+'BOX</div>';
+    shipPallets.sort(function(a,b){return ALL_FLOORS.indexOf(a.floor)-ALL_FLOORS.indexOf(b.floor)||a.pltNo-b.pltNo;}).forEach(function(p){
+      var t=p.sentAt?new Date(p.sentAt):null;var ts=t?pad(t.getHours())+':'+pad(t.getMinutes()):'';
+      html+='<div class="plt-modal-item" style="background:rgba(46,204,113,.06);margin-bottom:3px;cursor:pointer;" onclick="closeCourierModal();showPltDetail('+JSON.stringify(p)+',\'shipped\',\''+p.fbKey+'\');">'
+        +'<span><span style="background:'+FCOLORS[p.floor]+';color:#fff;border-radius:4px;padding:1px 6px;font-size:10px;font-weight:800;margin-right:6px;">'+FN[p.floor]+'</span>No.'+p.pltNo+'</span>'
+        +'<span style="font-size:11px;color:var(--muted);">'+(ts?'🕐 '+ts:'')+'</span>'
+        +'<span style="font-weight:900;color:var(--shipped);">'+p.totalBox+'BOX</span></div>';
+    });
+  }
+  if(waitPallets.length===0&&shipPallets.length===0) html+='<div style="text-align:center;padding:20px;color:var(--muted);">해당 택배사 파레트 없음</div>';
+  html+='<button class="plt-modal-close" onclick="closeCourierModal()">닫기</button></div>';
+  document.getElementById('pltDetailModal').innerHTML=html;
+  document.getElementById('pltDetailOverlay').classList.add('show');
+}
+function closeCourierModal(){ document.getElementById('pltDetailOverlay').classList.remove('show'); }
 
 
 /* ── 일일마감 ── */
@@ -1208,6 +1352,7 @@ setInterval(checkAutosave, 60000);
 </script>
 <div class="overlay" id="reportOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="report-modal" id="reportModal"></div></div>
 <div class="overlay" id="recoveryOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="report-modal" id="recoveryModal"></div></div>
+<div class="overlay" id="pltDetailOverlay" onclick="if(event.target===this)this.classList.remove('show')"><div class="plt-modal" id="pltDetailModal"></div></div>
 <script>if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');</script>
 </body>
 </html>
