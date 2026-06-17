@@ -283,8 +283,9 @@ async function loadData(isAuto){
     var r1 = await fetch(FB_URL+'/waiting.json?t='+_t);
     var d1 = await r1.json();
     if(d1){
-      if(d1.data) waiting = d1.data;
-      if(d1.doneStatus) doneStatus = d1.doneStatus;
+      // data 키가 없으면 = 대기 전부 비워진 상태(Firebase가 빈 배열을 삭제함). 옛 목록 유지 금지
+      waiting = d1.data || {};
+      doneStatus = d1.doneStatus || {};
     }
     var r2 = await fetch(FB_URL+'/shipments.json?t='+_t);
     var d2 = await r2.json();

@@ -245,7 +245,7 @@ async function loadData(){
     var _t=Date.now();
     var r=await fetch(FB_URL+'/waiting.json?t='+_t);
     var d=await r.json();
-    if(d){if(d.data)waiting=d.data;if(d.doneStatus)doneStatus=d.doneStatus;}
+    if(d){waiting=d.data||{};doneStatus=d.doneStatus||{};} // data 없으면=대기 비움(빈배열은 FB가 삭제)
     var r2=await fetch(FB_URL+'/notifications.json?t='+_t);
     var d2=await r2.json();
     if(d2)notifications=d2||{};

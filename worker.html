@@ -1511,13 +1511,15 @@ function loadAllFromFB(includeCurrent){
   fetch(FB_URL + '/waiting.json?t=' + Date.now())
     .then(function(r){ return r.json(); })
     .then(function(d){
-      if(d && d.data){
+      if(d){
+        // data 키가 없으면 = 대기 전부 비워진 상태(FB가 빈 배열을 삭제). fbData[f] 없으면 [] 처리
+        var fbData = d.data || {};
         ALL_FLOORS.forEach(function(f){
           if(f === currentFloor){
             // 자기 층: 로그인/층전환 시에만 FB와 병합(원격 신규 파레트가 보이도록)
-            if(includeCurrent) waiting[f] = mergeWaitingById(waiting[f], d.data[f]);
-          } else if(d.data[f]){
-            waiting[f] = d.data[f];
+            if(includeCurrent) waiting[f] = mergeWaitingById(waiting[f], fbData[f]);
+          } else {
+            waiting[f] = fbData[f] || []; // 다른 층은 FB가 기준 — 비워졌으면 비움
           }
         });
         if(d.doneStatus) Object.assign(doneStatus, d.doneStatus);
