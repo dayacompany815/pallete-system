@@ -951,7 +951,18 @@ function goTab(tab){
     var bn=document.getElementById('bn-'+t);if(bn)bn.classList.toggle('active', t === tab);
   });
   updateFloatBtn();
-  if(tab==='expect') renderExpectInput();
+  if(tab==='expect') openExpectTab();
+}
+
+function openExpectTab(){
+  // FB에서 최신 확정상태 동기화 후 렌더
+  fetch(FB_URL+'/expect/status.json?t='+Date.now())
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(d){ ALL_FLOORS.forEach(function(f){ if(d[f]&&d[f].state) expectStatus[f]=d[f].state; }); saveExpectStatus(); }
+    })
+    .catch(function(){})
+    .finally(function(){ renderExpectInput(); });
 }
 
 /* ===== 입력 ===== */
@@ -1744,6 +1755,7 @@ function updateBadges(){
 
 /* ════ 예상 파레트 ════ */
 var expectData = {};
+var expectStatus = {}; // {floor:'confirmed'|'tentative'}
 
 function loadExpectData(){
   var s=lsGet('plt_expect');
@@ -1754,8 +1766,27 @@ function saveExpectData(){
   lsSet('plt_expect',JSON.stringify(expectData));
 }
 
+function loadExpectStatus(){
+  var s=lsGet('plt_expect_status');
+  if(s){try{expectStatus=JSON.parse(s);}catch(e){}}
+}
+
+function saveExpectStatus(){
+  lsSet('plt_expect_status',JSON.stringify(expectStatus));
+}
+
+function setExpectStatus(floor, state){
+  expectStatus[floor]=state; saveExpectStatus();
+  var payload={}; payload[floor]={state:state, worker:session.name, at:new Date().toISOString()};
+  fetch(FB_URL+'/expect/status.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+    .then(function(){showToast(state==='confirmed'?'🟢 '+FN[floor]+' 확정 보고!':'🟡 '+FN[floor]+' 예상중으로 변경');})
+    .catch(function(){showToast('상태 전송 실패','err');});
+  renderExpectInput();
+}
+
 function renderExpectInput(){
   loadExpectData();
+  loadExpectStatus();
   var area=document.getElementById('expectInputArea');
   if(!area)return;
   area.innerHTML='';
@@ -1774,10 +1805,18 @@ function renderExpectInput(){
 
   // 담당 층 × 택배사 입력
   myFloors.forEach(function(floor){
-    // 층 헤더
+    // 층 헤더 + 확정 토글
+    var st = expectStatus[floor]==='confirmed' ? 'confirmed' : 'tentative';
     var floorHdr=document.createElement('div');
-    floorHdr.style.cssText='background:'+FCOLORS[floor]+';color:#fff;border-radius:9px;padding:8px 12px;margin-bottom:6px;margin-top:10px;font-size:13px;font-weight:900;';
-    floorHdr.textContent='🏢 '+FN[floor];
+    floorHdr.style.cssText='display:flex;align-items:center;gap:8px;background:'+FCOLORS[floor]+';color:#fff;border-radius:9px;padding:8px 12px;margin-bottom:6px;margin-top:10px;';
+    var fname=document.createElement('div');
+    fname.style.cssText='font-size:13px;font-weight:900;';
+    fname.textContent='🏢 '+FN[floor];
+    var stBtn=document.createElement('button');
+    stBtn.style.cssText='margin-left:auto;border:none;border-radius:20px;padding:6px 13px;font-size:12px;font-weight:800;cursor:pointer;font-family:inherit;'+(st==='confirmed'?'background:#fff;color:#16a34a;':'background:rgba(255,255,255,.25);color:#fff;');
+    stBtn.textContent=st==='confirmed'?'🟢 확정됨 (탭하여 해제)':'🟡 예상중 (탭하여 확정)';
+    (function(fl,cur){ stBtn.addEventListener('click',function(){ setExpectStatus(fl, cur==='confirmed'?'tentative':'confirmed'); }); })(floor,st);
+    floorHdr.appendChild(fname); floorHdr.appendChild(stBtn);
     area.appendChild(floorHdr);
 
     couriers.forEach(function(c){
@@ -1831,8 +1870,14 @@ function sendExpectData(){
   loadExpectData();
   var hasData=Object.values(expectData).some(function(v){return v>0;});
   if(!hasData){showToast('예상 수량을 입력해주세요','err');return;}
-  var payload={floor:currentFloor,worker:session.name,sentAt:new Date().toISOString(),data:expectData,type:'expect'};
-  fetch(FB_URL+'/expect.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)})
+  // 본인 담당 층 키만 추려서 머지 전송 (다른 층 예상 덮어쓰기 방지)
+  var worker=null;
+  for(var i=0;i<cfg.workers.length;i++){if(cfg.workers[i].name===session.name){worker=cfg.workers[i];break;}}
+  var myFloors=worker&&worker.floors&&worker.floors.length?worker.floors:[currentFloor];
+  var myKeys={};
+  Object.keys(expectData).forEach(function(k){ if(myFloors.indexOf(k.split('_')[0])>=0) myKeys[k]=expectData[k]; });
+  fetch(FB_URL+'/expect/data.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(myKeys)})
+    .then(function(){ return fetch(FB_URL+'/expect.json',{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({worker:session.name,sentAt:new Date().toISOString(),type:'expect'})}); })
     .then(function(){showToast('📤 예상 데이터 전송 완료!');})
     .catch(function(){showToast('전송 실패','err');});
 }

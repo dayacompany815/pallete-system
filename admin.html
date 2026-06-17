@@ -323,7 +323,7 @@ var expectData2 = {};
 
 function renderPage5(){
   var container = document.getElementById('pExpect');
-  fetch(FB_URL+'/expect.json')
+  fetch(FB_URL+'/expect.json?t='+Date.now())
     .then(function(r){return r.json();})
     .then(function(d){
       if(!d||!d.data||!Object.keys(d.data).some(function(k){return d.data[k]>0;})){
@@ -331,6 +331,8 @@ function renderPage5(){
         return;
       }
       expectData2 = d.data||{};
+      var expStatus = d.status||{};
+      var confFloors = ALL_FLOORS.filter(function(f){return expStatus[f]&&expStatus[f].state==='confirmed';});
       var meta = d;
 
       // 총합 계산
@@ -349,6 +351,11 @@ function renderPage5(){
       html+='<div style="background:rgba(59,158,255,.1);border:1px solid rgba(59,158,255,.25);border-radius:10px;padding:10px;text-align:center;"><div style="font-size:10px;color:var(--a1);font-weight:700;">📊 달성률</div><div style="font-size:22px;font-weight:900;color:'+(pct>=100?'var(--a3)':pct>=50?'var(--a5)':'var(--red)')+';">'+pct+'%</div></div>';
       html+='</div>';
 
+      // 확정 상태 배너
+      html+='<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:8px 11px;margin-bottom:12px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:6px;flex-wrap:wrap;">'
+        +'<span style="color:var(--muted)">확정:</span>'
+        +(confFloors.length?confFloors.map(function(f){return '<span style="background:var(--a3);color:#053;border-radius:5px;padding:2px 7px;font-weight:900;">🟢 '+FN[f]+'</span>';}).join(' '):'<span style="color:var(--a5)">전부 예상중</span>')
+        +'<span style="margin-left:auto;color:var(--muted);">'+confFloors.length+'/'+ALL_FLOORS.length+'층</span></div>';
       // 층별 비교
       html+='<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:7px;">층별 예상 vs 실제</div>';
       ALL_FLOORS.forEach(function(floor){
@@ -369,6 +376,7 @@ function renderPage5(){
         html+='<div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:9px 11px;margin-bottom:7px;">'
           +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;">'
             +'<div style="background:'+FCOLORS[floor]+';color:#fff;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:900;">'+FN[floor]+'</div>'
+            +(expStatus[floor]&&expStatus[floor].state==='confirmed'?'<span style="background:var(--a3);color:#053;border-radius:5px;padding:2px 7px;font-size:9px;font-weight:900;">🟢확정</span>':'<span style="background:var(--a5)22;color:var(--a5);border-radius:5px;padding:2px 7px;font-size:9px;font-weight:800;">🟡예상중</span>')
             +(floorExp>0?'<div style="font-size:11px;color:var(--muted);">예상 <strong style="color:var(--a4);">'+floorExp+'</strong></div>':'')
             +'<div style="font-size:11px;color:var(--muted);">실제 <strong style="color:var(--a3);">'+floorAct+'</strong></div>'
             +(floorExp>0?'<div style="font-size:11px;font-weight:800;color:'+diffColor+';margin-left:auto;">'+(diff>=0?'+':'')+diff+' ('+pctF+'%)</div>':'')

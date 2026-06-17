@@ -988,6 +988,8 @@ function renderExpect(){
         container.innerHTML='<div style="text-align:center;padding:40px;color:var(--muted);font-size:14px;">📋 예상 데이터가 없습니다<br><small>작업자앱 예상 탭에서 입력해주세요</small></div>';return;
       }
       expectData=d.data||{};
+      var expStatus=d.status||{};
+      var confFloors=ALL_FLOORS.filter(function(f){return expStatus[f]&&expStatus[f].state==='confirmed';});
       var totalExp=0,totalAct=0;
       Object.keys(expectData).forEach(function(k){totalExp+=expectData[k]||0;});
       ALL_FLOORS.forEach(function(f){(waiting[f]||[]).forEach(function(){totalAct++;});Object.keys(shipments||{}).forEach(function(k){var e=shipments[k];if(e&&e.floor===f&&e.pallets)totalAct+=e.pallets.length;});});
@@ -997,6 +999,10 @@ function renderExpect(){
         +'<div class="kpi" style="border-top:3px solid var(--a3)"><div class="kpi-icon">✅</div><div class="kpi-label">실제 처리</div><div class="kpi-val" style="color:var(--a3)">'+totalAct+'</div><div class="kpi-sub">파레트</div></div>'
         +'<div class="kpi" style="border-top:3px solid var(--a1)"><div class="kpi-icon">📊</div><div class="kpi-label">달성률</div><div class="kpi-val" style="color:'+(pct>=100?'var(--a3)':pct>=50?'var(--a5)':'var(--red)')+'">'+pct+'%</div><div class="kpi-sub">예상 대비</div></div>'
         +'</div>';
+      html+='<div style="background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:9px 13px;margin-bottom:14px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">'
+        +'<span style="color:var(--muted)">확정 상태:</span>'
+        +(confFloors.length?confFloors.map(function(f){return '<span style="background:var(--shipped);color:#053;border-radius:5px;padding:2px 8px;font-weight:900;">🟢 '+FN[f]+' 확정</span>';}).join(' '):'<span style="color:var(--waiting)">아직 확정된 층 없음 (전부 예상중)</span>')
+        +'<span style="margin-left:auto;color:var(--muted);font-size:11px;">확정 '+confFloors.length+' / '+ALL_FLOORS.length+'층</span></div>';
       html+='<div class="tbl-wrap"><div class="tbl-title">🏢 층별 × 택배사 예상 vs 실제</div><table><thead><tr><th>층</th>';
       cfg.couriers.forEach(function(c){html+='<th colspan="2" style="text-align:center;background:'+c.color+'22;color:'+c.color+';">'+c.icon+' '+c.name+'</th>';});
       html+='<th colspan="2" style="text-align:center">합계</th></tr><tr><th></th>';
@@ -1008,7 +1014,9 @@ function renderExpect(){
         (waiting[floor]||[]).forEach(function(p){if(actByC[p.courierId]!==undefined)actByC[p.courierId]++;});
         Object.keys(shipments||{}).forEach(function(k){var e=shipments[k];if(e&&e.floor===floor&&e.pallets)e.pallets.forEach(function(p){if(actByC[p.courierId]!==undefined)actByC[p.courierId]++;});});
         var fExp=0,fAct=0;
-        html+='<tr><td><span style="background:'+FCOLORS[floor]+';color:#fff;border-radius:5px;padding:3px 8px;font-size:12px;font-weight:900;">'+FN[floor]+'</span></td>';
+        var stConf=expStatus[floor]&&expStatus[floor].state==='confirmed';
+        var stBadge=stConf?'<span style="display:inline-block;margin-left:5px;background:var(--shipped);color:#053;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:900;">🟢확정</span>':'<span style="display:inline-block;margin-left:5px;background:var(--waiting);color:#5a2d00;border-radius:4px;padding:1px 6px;font-size:9px;font-weight:800;">🟡예상중</span>';
+        html+='<tr><td style="white-space:nowrap"><span style="background:'+FCOLORS[floor]+';color:#fff;border-radius:5px;padding:3px 8px;font-size:12px;font-weight:900;">'+FN[floor]+'</span>'+stBadge+'</td>';
         cfg.couriers.forEach(function(c){
           var exp=expectData[floor+'_'+c.id]||0,act=actByC[c.id]||0,diff=act-exp;
           html+='<td style="text-align:center;color:var(--a4);font-weight:700;">'+(exp>0?exp:'-')+'</td>';
