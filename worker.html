@@ -465,19 +465,38 @@ function getTodayStr(){
 /* ── 일일 초기화 (Firebase 사용량 최소화) ── */
 function getDayKey(){ var d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
 
-function checkDailyReset(){
+// 팀 공유 기준일: 오늘 새 작업 시작이 이미 결정됐는지 Firebase로 판단 (브라우저/기기 무관)
+function setWorkDay(day){
+  try { fetch(FB_URL+'/meta/workDay.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(day)}); } catch(e){}
+}
+
+async function checkDailyReset(){
   var today = getDayKey();
   var lastDay = lsGet('plt_last_day');
-  if(lastDay && lastDay !== today){
-    // 날짜가 바뀜 → 첫 로그인 시 새 작업 시작 여부 확인
-    if(confirm('📅 날짜가 바뀌었습니다.\n('+lastDay+' → '+today+')\n\n새로운 작업을 시작하시겠습니까?\n어제 데이터는 자동 보관됩니다.')){
-      archiveAndReset(lastDay, false);
-    } else {
-      // 기존 데이터 유지 (다시 묻지 않음)
-      lsSet('plt_last_day', today);
-    }
-  } else if(!lastDay) {
+
+  // 공유 기준일 조회 (작은 문자열 1건만)
+  var sharedDay = null;
+  try {
+    var r = await fetch(FB_URL+'/meta/workDay.json');
+    sharedDay = await r.json();
+  } catch(e){}
+
+  // 1) 팀에서 오늘 이미 결정됨 → 묻지 않음
+  if(sharedDay === today){ lsSet('plt_last_day', today); return; }
+
+  // 2) 이 기기에서 오늘 이미 결정함 → 공유값만 보정하고 끝
+  if(lastDay === today){ setWorkDay(today); return; }
+
+  // 3) 첫 사용(로컬·공유 둘 다 기록 없음) → 조용히 오늘로 설정
+  if(!lastDay && !sharedDay){ lsSet('plt_last_day', today); setWorkDay(today); return; }
+
+  // 4) 진짜 날짜가 바뀜 → 팀에서 오늘 첫 진입자에게만 확인
+  if(confirm('📅 날짜가 바뀌었습니다.\n('+(lastDay||sharedDay||'이전')+' → '+today+')\n\n새로운 작업을 시작하시겠습니까?\n어제 데이터는 자동 보관됩니다.')){
+    archiveAndReset(lastDay||sharedDay||today, false); // 내부에서 workDay=today 기록됨
+  } else {
+    // 기존 데이터 유지 — 오늘은 결정 완료로 공유 기록 (팀 전체 다시 안 물음)
     lsSet('plt_last_day', today);
+    setWorkDay(today);
   }
 }
 
@@ -515,6 +534,7 @@ async function archiveAndReset(archiveDate, auto){
     // 다른 앱(모니터/관리자)도 초기화되도록 신호 전파
     var resetAt=new Date().toISOString();
     await fetch(FB_URL+'/reset_signal.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({date:getDayKey(),resetAt:resetAt,by:(session&&session.name)||'작업자'})});
+    await fetch(FB_URL+'/meta/workDay.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(getDayKey())}); // 팀 공유 기준일 갱신
     lsSet('plt_last_reset', resetAt); // 자기 신호 재감지 방지
   } catch(e) {}
 }
