@@ -814,6 +814,11 @@ function goStep2(){
     if(cfg.workers[i].name === selName){ worker = cfg.workers[i]; break; }
   }
   var allowed = worker ? (worker.floors || []) : [];
+  // URL ?floor=1F 파라미터로 층 자동 선택
+  if(!selFloor){
+    var urlFloor = new URLSearchParams(location.search).get('floor');
+    if(urlFloor && allowed.indexOf(urlFloor) >= 0) selFloor = urlFloor;
+  }
   var g = document.getElementById('floorSelGrid');
   g.innerHTML = '';
   ALL_FLOORS.forEach(function(f){

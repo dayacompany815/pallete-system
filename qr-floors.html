@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>출고지기 층별 QR코드</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0;}
+  :root{
+    --green:#03C75A; --green-d:#02a64b;
+    --B1:#7b5cff; --1F:#03C75A; --3F:#2d6cdf; --4F:#f5a623; --5F:#e0457b;
+  }
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    background:#f0f2f5; padding:32px;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  h1.page-title{
+    text-align:center; font-size:22px; font-weight:900; color:#1a1a1a;
+    margin-bottom:8px; letter-spacing:-.3px;
+  }
+  p.page-sub{text-align:center;font-size:14px;color:#889;margin-bottom:32px;}
+
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1100px;margin:0 auto;}
+
+  .card{
+    background:#fff; border-radius:24px; padding:40px 28px 36px;
+    display:flex;flex-direction:column;align-items:center;
+    box-shadow:0 4px 20px rgba(0,0,0,.07);
+    border-top:8px solid var(--green);
+    page-break-inside:avoid; break-inside:avoid;
+  }
+  .card.c-B1{border-color:#7b5cff;}
+  .card.c-1F{border-color:#03C75A;}
+  .card.c-3F{border-color:#2d6cdf;}
+  .card.c-4F{border-color:#f5a623;}
+  .card.c-5F{border-color:#e0457b;}
+
+  .floor-badge{
+    font-size:13px; font-weight:800; color:#fff; padding:5px 18px;
+    border-radius:40px; margin-bottom:18px; letter-spacing:.5px;
+  }
+  .c-B1 .floor-badge{background:#7b5cff;}
+  .c-1F .floor-badge{background:#03C75A;}
+  .c-3F .floor-badge{background:#2d6cdf;}
+  .c-4F .floor-badge{background:#f5a623;}
+  .c-5F .floor-badge{background:#e0457b;}
+
+  .floor-name{font-size:44px;font-weight:900;letter-spacing:-1px;margin-bottom:24px;color:#1a1a1a;}
+  .c-B1 .floor-name{color:#7b5cff;}
+  .c-1F .floor-name{color:#03C75A;}
+  .c-3F .floor-name{color:#2d6cdf;}
+  .c-4F .floor-name{color:#f5a623;}
+  .c-5F .floor-name{color:#e0457b;}
+
+  .qr-wrap{
+    width:220px; height:220px; padding:12px;
+    background:#fff; border-radius:16px;
+    border:2px solid #e5e8eb;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:22px;
+  }
+  .qr-wrap canvas, .qr-wrap img{width:196px!important;height:196px!important;}
+
+  .desc{font-size:14px;color:#667;text-align:center;line-height:1.65;}
+  .desc b{color:#1a1a1a;display:block;font-size:16px;margin-bottom:4px;}
+
+  .url-text{
+    margin-top:16px; font-size:10px; color:#aab;
+    word-break:break-all; text-align:center; max-width:220px;
+  }
+
+  /* 인쇄 */
+  .toolbar{max-width:1100px;margin:0 auto 24px;text-align:right;}
+  .toolbar button{
+    background:#03C75A;color:#fff;border:0;
+    padding:10px 22px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;
+  }
+  @page{size:A4 landscape;margin:12mm;}
+  @media print{
+    body{background:#fff;padding:0;}
+    .toolbar{display:none;}
+    .grid{gap:14px;max-width:100%;}
+    .card{padding:24px 18px;border-radius:16px;}
+    .floor-name{font-size:36px;}
+    .qr-wrap{width:180px;height:180px;}
+    .qr-wrap canvas,.qr-wrap img{width:156px!important;height:156px!important;}
+    h1.page-title{font-size:18px;}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar noprint">
+  <button onclick="window.print()">🖨️ 인쇄 / PDF 저장</button>
+</div>
+
+<h1 class="page-title">📦 출고지기 — 층별 접속 QR코드</h1>
+<p class="page-sub">각 층 담당자가 스캔하면 해당 층이 자동 선택된 작업 화면으로 바로 연결됩니다.</p>
+
+<div class="grid" id="grid"></div>
+
+<script>
+var BASE = 'https://dayacompany815.github.io/pallete-system/worker.html';
+
+var FLOORS = [
+  {id:'B1', name:'지하 1층', label:'B1'},
+  {id:'1F', name:'1층',     label:'1F'},
+  {id:'3F', name:'3층',     label:'3F'},
+  {id:'4F', name:'4층',     label:'4F'},
+  {id:'5F', name:'5층',     label:'5F'},
+];
+
+var grid = document.getElementById('grid');
+
+FLOORS.forEach(function(fl){
+  var url = BASE + '?floor=' + fl.id;
+
+  var card = document.createElement('div');
+  card.className = 'card c-' + fl.id;
+
+  var badge = document.createElement('div');
+  badge.className = 'floor-badge';
+  badge.textContent = '출고지기 작업';
+
+  var fname = document.createElement('div');
+  fname.className = 'floor-name';
+  fname.textContent = fl.label;
+
+  var wrap = document.createElement('div');
+  wrap.className = 'qr-wrap';
+  var qrDiv = document.createElement('div');
+  wrap.appendChild(qrDiv);
+
+  var desc = document.createElement('div');
+  desc.className = 'desc';
+  desc.innerHTML = '<b>' + fl.name + ' 담당자용</b>QR 스캔 → 이름 선택 → 입장';
+
+  var urlText = document.createElement('div');
+  urlText.className = 'url-text';
+  urlText.textContent = url;
+
+  card.appendChild(badge);
+  card.appendChild(fname);
+  card.appendChild(wrap);
+  card.appendChild(desc);
+  card.appendChild(urlText);
+  grid.appendChild(card);
+
+  new QRCode(qrDiv, {
+    text: url,
+    width: 196,
+    height: 196,
+    colorDark: '#1a1a1a',
+    colorLight: '#ffffff',
+    correctLevel: QRCode.CorrectLevel.M
+  });
+});
+</script>
+</body>
+</html>

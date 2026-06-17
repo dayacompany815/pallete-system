@@ -169,6 +169,7 @@
     .toolbar{position:sticky; top:0; padding:8px 12px; background:#fff; z-index:9; border-bottom:1px solid var(--line);}
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -384,6 +385,34 @@
       <tr><th>데이터 보호</th><td>매시간 자동 백업 + 복구 기능, 일일 마감 데이터 보관</td></tr>
       <tr><th>운영 비용</th><td>전용 서버 없이 운영 — 별도 서버 유지비 부담 최소</td></tr>
     </table>
+  </section>
+
+  <section>
+    <div class="sec-title">층별 바로 접속 QR코드 <span class="sec-sub">스캔 → 해당 층 자동 선택</span></div>
+    <p style="font-size:12px;color:var(--gray);margin-bottom:14px;">각 층 작업 현장에 부착 — 담당자가 스캔하면 해당 층이 자동 선택된 입력 화면으로 바로 연결됩니다.</p>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;" id="qrRow"></div>
+    <script>
+    (function(){
+      if(typeof QRCode==='undefined') return;
+      var BASE='https://dayacompany815.github.io/pallete-system/worker.html';
+      var FLOORS=[{id:'B1',name:'지하1층',color:'#7b5cff'},{id:'1F',name:'1층',color:'#03C75A'},{id:'3F',name:'3층',color:'#2d6cdf'},{id:'4F',name:'4층',color:'#f5a623'},{id:'5F',name:'5층',color:'#e0457b'}];
+      var row=document.getElementById('qrRow');
+      FLOORS.forEach(function(fl){
+        var box=document.createElement('div');
+        box.style.cssText='display:flex;flex-direction:column;align-items:center;border:1px solid #e5e8eb;border-radius:12px;padding:12px 10px;border-top:4px solid '+fl.color+';width:100px;';
+        var qd=document.createElement('div'); box.appendChild(qd);
+        var lbl=document.createElement('div');
+        lbl.style.cssText='margin-top:8px;font-size:13px;font-weight:900;color:'+fl.color+';';
+        lbl.textContent=fl.id;
+        var sub=document.createElement('div');
+        sub.style.cssText='font-size:10px;color:#889;margin-top:2px;';
+        sub.textContent=fl.name;
+        box.appendChild(lbl); box.appendChild(sub);
+        row.appendChild(box);
+        new QRCode(qd,{text:BASE+'?floor='+fl.id,width:76,height:76,colorDark:'#1a1a1a',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});
+      });
+    })();
+    </script>
   </section>
 
   <section>
