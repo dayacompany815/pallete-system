@@ -261,46 +261,44 @@ function loadCfgLocal(){
   if(s){try{var c=JSON.parse(s);if(c.couriers&&c.couriers.length)cfg.couriers=c.couriers;}catch(e){}}
 }
 
-async function loadData(){
+async function loadData(isAuto){
   loadCfgLocal();
   try{
-    // 대기 현황
     var r1 = await fetch(FB_URL+'/waiting.json');
     var d1 = await r1.json();
     if(d1){
       if(d1.data) waiting = d1.data;
       if(d1.doneStatus) doneStatus = d1.doneStatus;
     }
-    // 출고완료(shipments)
     var r2 = await fetch(FB_URL+'/shipments.json');
     var d2 = await r2.json();
     shipments = d2 || {};
-    // 마감 알림 (요약)
     var r3 = await fetch(FB_URL+'/notifications.json');
     var d3 = await r3.json();
     notifications = d3 || {};
     closingReports = notifications;
-    // 마감 보고서 (파레트 상세 포함)
     var r4 = await fetch(FB_URL+'/reports.json');
     var d4 = await r4.json();
     reports = d4 || {};
 
     var now = new Date();
     document.getElementById('lastUpd').textContent =
-      String(now.getHours()).padStart(2,'0')+':'+String(now.getMinutes()).padStart(2,'0')+':'+String(now.getSeconds()).padStart(2,'0');
+      pad(now.getHours())+':'+pad(now.getMinutes())+':'+pad(now.getSeconds());
   } catch(e){
     var s=lsGet('plt_state');
     if(s){try{var d=JSON.parse(s);waiting=d.waiting||{};doneStatus=d.doneStatus||{};}catch(e2){}}
     document.getElementById('lastUpd').textContent='로컬 데이터';
   }
-  render();
+  render(isAuto);
 }
 
 /* 탭/뷰 전환 */
+var LIST_TABS = ['waiting','shipped']; // 뷰 바(카드/텍스트·층 필터)가 필요한 탭
 function switchTab(tab){
   currentTab = tab;
   document.querySelectorAll('.main-tab').forEach(function(b){b.classList.toggle('active',b.id==='tab-'+tab);});
   document.querySelectorAll('.tab-page').forEach(function(p){p.classList.toggle('active',p.id==='page-'+tab);});
+  document.querySelector('.view-bar').style.display = LIST_TABS.indexOf(tab)>=0 ? 'flex' : 'none';
   renderCurrentTab();
 }
 
@@ -319,11 +317,15 @@ function setFloor(f, btn){
   renderCurrentTab();
 }
 
-function render(){
+var STATIC_TABS = ['expect','history']; // 자동갱신 시 재렌더 생략 (직접 fetch 탭)
+function render(isAuto){
   renderKPI();
   renderKPICards();
   renderAlerts();
+  if(isAuto && STATIC_TABS.indexOf(currentTab)>=0) return; // 예상/과거는 수동 전환 시에만 렌더
+  var scrollY = window.scrollY;
   renderCurrentTab();
+  window.scrollTo(0, scrollY);
 }
 
 function renderCurrentTab(){
@@ -337,11 +339,12 @@ function renderCurrentTab(){
   else renderWaiting();
 }
 
-/* 탭 뱃지 숫자 갱신 (요약카드는 renderKPI 하나만 사용) */
+/* 탭 뱃지 숫자 갱신 */
 function renderKPICards(){
-  var totalWait=0, totalShip=0;
+  var totalWait=0, totalShip=0, totalClose=0;
   ALL_FLOORS.forEach(function(f){
     (waiting[f]||[]).forEach(function(){ totalWait++; });
+    if(doneStatus[f]) totalClose++;
   });
   Object.keys(shipments).forEach(function(k){
     var e=shipments[k];
@@ -349,6 +352,7 @@ function renderKPICards(){
   });
   document.getElementById('waitingCntBadge').textContent=totalWait;
   document.getElementById('shippedCntBadge').textContent=totalShip;
+  document.getElementById('closeBadge').textContent=totalClose;
 }
 
 /* 마감 알림 */
@@ -913,30 +917,6 @@ function renderKPI(){
   kpiEl.innerHTML=html;
 }
 
-/* ── 층별 현황 ── */
-function renderStatus(){
-  var el=document.getElementById('statusContent');
-  if(!el)return;
-  var html='<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:20px;">';
-  ALL_FLOORS.forEach(function(floor){
-    var wl=waiting[floor]||[];
-    var sl=[];Object.keys(shipments).forEach(function(k){var e=shipments[k];if(e&&e.floor===floor&&e.pallets)sl=sl.concat(e.pallets);});
-    var isDone=doneStatus[floor]||false;
-    html+='<div style="background:var(--card);border:1px solid '+(isDone?'rgba(46,204,113,.3)':'var(--border)')+';border-radius:13px;overflow:hidden;">'
-      +'<div style="padding:10px 12px;background:var(--card2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;">'
-        +'<div style="background:'+FCOLORS[floor]+';color:#fff;border-radius:7px;padding:3px 10px;font-size:12px;font-weight:900;">'+FN[floor]+'</div>'
-        +(isDone?'<span style="margin-left:auto;font-size:10px;font-weight:800;color:var(--a3);">✅마감</span>':'')
-      +'</div>'
-      +'<div style="padding:9px 12px;">'
-        +'<div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border);font-size:12px;"><span style="color:var(--muted);">⏳대기</span><span style="font-weight:800;color:var(--waiting);">'+wl.length+'PLT / '+wl.reduce(function(s,p){return s+p.totalBox;},0)+'BOX</span></div>'
-        +'<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;"><span style="color:var(--muted);">✅출고</span><span style="font-weight:800;color:var(--shipped);">'+sl.length+'PLT / '+sl.reduce(function(s,p){return s+p.totalBox;},0)+'BOX</span></div>'
-      +'</div>'
-    +'</div>';
-  });
-  html+='</div>';
-  el.innerHTML=html;
-}
-
 
 /* ── 일일마감 ── */
 function getDayKey(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
@@ -1220,8 +1200,8 @@ function checkMonitorNewDay(){
   }
 }
 
-loadData();
-setInterval(loadData, 10000);
+loadData(false);
+setInterval(function(){ loadData(true); }, 10000);
 checkMonitorNewDay();
 checkAutosave();
 setInterval(checkAutosave, 60000);
