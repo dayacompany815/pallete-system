@@ -615,6 +615,7 @@ var session = {name:'',floor:'',loggedIn:false};
 var selName = '', selFloor = '';
 var currentFloor = '', currentTab = 'input', inputCourier = 'koryo';
 var waiting = {}, done = {}, doneStatus = {};
+var shipments = {}; // FB /shipments — 당일 출고 내역(전층현황 탭에서 표시)
 var wSel = {};
 var _report = null;
 
@@ -1340,7 +1341,9 @@ function sendPallets(elevator){
     elevator: elevator || '',
     elevatorName: ELEVATORS[elevator] || ''
   };
-  fetch(FB_URL + '/shipments/' + currentFloor + '_' + Date.now() + '.json', {
+  var shipKey = currentFloor + '_' + Date.now();
+  shipments[shipKey] = payload; // 로컬에도 즉시 반영 → 전층현황 출고완료에 바로 표시
+  fetch(FB_URL + '/shipments/' + shipKey + '.json', {
     method: 'PUT',
     headers: {'Content-Type':'application/json'},
     body: JSON.stringify(payload)
@@ -1391,12 +1394,14 @@ function renderAllFloors(){
     badge.className = 'afs-badge';
     badge.style.background = FCOLORS[floor];
     badge.textContent = FN[floor];
+    var shipList = shippedForFloor(floor);
     var cnt = document.createElement('div');
     cnt.className = 'afs-cnt';
+    var shipTxt = shipList.length > 0 ? ' · 출고 <strong style="color:var(--a3)">' + shipList.length + '</strong>' : '';
     if(isDone){
-      cnt.innerHTML = '<span class="done-chip">✅ 마감완료</span>';
+      cnt.innerHTML = '<span class="done-chip">✅ 마감완료</span>' + (shipList.length>0 ? ' 출고 <strong style="color:var(--a3)">'+shipList.length+'</strong>개' : '');
     } else {
-      cnt.innerHTML = '대기 <strong style="color:var(--a5)">' + list.length + '</strong>개';
+      cnt.innerHTML = '대기 <strong style="color:var(--a5)">' + list.length + '</strong>' + shipTxt;
     }
     if(isMyFloor){
       var mine = document.createElement('span');
@@ -1460,8 +1465,66 @@ function renderAllFloors(){
       body2.appendChild(em2);
       sec.appendChild(body2);
     }
+
+    // 🚀 당일 출고완료 내역 (마감 여부와 무관하게 표시)
+    if(shipList.length > 0){
+      var sBody = document.createElement('div');
+      sBody.className = 'afs-body';
+      var sHd = document.createElement('div');
+      sHd.style.cssText = 'font-size:11px;font-weight:800;color:var(--a3);margin:2px 0 6px;';
+      var sBox = shipList.reduce(function(t,s){ return t + (s.p.totalBox||0); }, 0);
+      sHd.textContent = '🚀 출고완료 ' + shipList.length + '개 · ' + sBox + 'BOX';
+      sBody.appendChild(sHd);
+      var sGrid = document.createElement('div');
+      sGrid.className = 'all-plt-grid';
+      shipList.forEach(function(s){ sGrid.appendChild(makeShippedCard(s)); });
+      sBody.appendChild(sGrid);
+      sec.appendChild(sBody);
+    }
+
     container.appendChild(sec);
   });
+}
+
+// 특정 층의 당일 출고 파레트 목록(배치 메타 포함) — FB /shipments 기준
+function shippedForFloor(floor){
+  var out = [];
+  Object.keys(shipments||{}).forEach(function(k){
+    var e = shipments[k];
+    if(!e || e.floor !== floor || !e.pallets) return;
+    e.pallets.forEach(function(p){
+      out.push({ p:p, sentAt:e.sentAt, elevatorName:e.elevatorName, worker:e.worker });
+    });
+  });
+  out.sort(function(a,b){ return (a.sentAt||'') < (b.sentAt||'') ? -1 : 1; });
+  return out;
+}
+
+// 출고완료 카드(읽기 전용, 초록 테두리 + 엘베/시간/작업자 메타)
+function makeShippedCard(s){
+  var p = s.p;
+  var ro = document.createElement('div');
+  ro.className = 'ro-card';
+  ro.style.borderColor = 'var(--a3)';
+  var rTop = document.createElement('div'); rTop.className = 'ro-top';
+  var rNo = document.createElement('div'); rNo.className = 'ro-no'; rNo.textContent = 'No.' + p.pltNo;
+  var rC = document.createElement('div'); rC.className = 'ro-c'; rC.style.background = p.courierColor; rC.textContent = p.courierName;
+  rTop.appendChild(rNo); rTop.appendChild(rC);
+  ro.appendChild(rTop);
+  var rBox = document.createElement('div'); rBox.className = 'ro-box'; rBox.textContent = p.totalBox + 'BOX';
+  ro.appendChild(rBox);
+  (p.items||[]).forEach(function(it){
+    var rItem = document.createElement('div'); rItem.className = 'ro-item';
+    rItem.innerHTML = it.pharma + '<span class="ro-item-box"> ' + it.box + '박스</span>';
+    ro.appendChild(rItem);
+  });
+  var t = s.sentAt ? new Date(s.sentAt) : null;
+  var ts = t ? String(t.getHours()).padStart(2,'0') + ':' + String(t.getMinutes()).padStart(2,'0') : '';
+  var meta = document.createElement('div');
+  meta.style.cssText = 'font-size:10px;color:var(--muted);margin-top:4px;line-height:1.4;';
+  meta.textContent = '🚀 ' + (s.elevatorName || '출고') + (ts ? ' · ' + ts : '') + (s.worker ? ' · ' + s.worker : '');
+  ro.appendChild(meta);
+  return ro;
 }
 
 function syncWaitingToFB(){
@@ -1529,6 +1592,15 @@ function loadAllFromFB(includeCurrent){
         renderWaiting();
         updatePltNo();
       }
+      renderAllFloors();
+      updateBadges();
+    }).catch(function(){});
+
+  // 당일 출고 내역(전층현황 탭에서 표시)
+  fetch(FB_URL + '/shipments.json?t=' + Date.now())
+    .then(function(r){ return r.json(); })
+    .then(function(d){
+      shipments = d || {};
       renderAllFloors();
       updateBadges();
     }).catch(function(){});
