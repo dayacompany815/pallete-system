@@ -1,0 +1,185 @@
+/* Settings — iOS-style 설정 패널 */
+.theme-settings {
+  --bg: #F2F2F7;
+  --card: #FFFFFF;
+  --card2: #F9F9FB;
+  --border: #E5E5EA;
+  --text: #1C1C1E;
+  --muted: #8E8E93;
+  --a1: #007AFF;
+  --a2: #FF9500;
+  --a3: #34C759;
+  --a4: #5856D6;
+  --a5: #FFCC00;
+  --a6: #FF2D55;
+  --red: #FF3B30;
+  --group-radius: 12px;
+  --shadow-group: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+html.theme-settings,
+html.theme-settings body {
+  background: var(--bg);
+}
+
+.theme-settings .hdr {
+  background: rgba(242, 242, 247, 0.92) !important;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 0.5px solid var(--border) !important;
+  box-shadow: none !important;
+}
+
+.theme-settings .hdr-title {
+  font-size: 17px !important;
+  font-weight: 800;
+  letter-spacing: -0.4px;
+}
+
+.theme-settings .hdr-sub {
+  font-size: 11px !important;
+  color: var(--muted) !important;
+}
+
+.theme-settings .btn-save {
+  background: var(--a3) !important;
+  border-radius: 20px !important;
+  padding: 8px 16px !important;
+  box-shadow: none !important;
+}
+
+.theme-settings .btn-sync {
+  background: var(--a1) !important;
+  border-radius: 20px !important;
+  padding: 8px 16px !important;
+  box-shadow: none !important;
+}
+
+.theme-settings .tab-nav {
+  background: rgba(242, 242, 247, 0.95) !important;
+  border-bottom: 0.5px solid var(--border) !important;
+}
+
+.theme-settings .tab-btn {
+  font-size: 12px !important;
+  padding: 10px 12px !important;
+}
+
+.theme-settings .tab-btn.active {
+  color: var(--a1) !important;
+  border-bottom-color: var(--a1) !important;
+  font-weight: 800;
+}
+
+.theme-settings .main {
+  padding: 16px 12px 32px !important;
+}
+
+.theme-settings .card {
+  border: none !important;
+  border-radius: var(--group-radius) !important;
+  box-shadow: var(--shadow-group);
+  margin-bottom: 20px !important;
+  overflow: hidden;
+}
+
+.theme-settings .chdr {
+  background: transparent !important;
+  border-bottom: none !important;
+  padding: 14px 16px 6px !important;
+}
+
+.theme-settings .ctitle {
+  font-size: 13px !important;
+  font-weight: 700 !important;
+  color: var(--muted) !important;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.theme-settings .cbody {
+  padding: 4px 16px 14px !important;
+}
+
+.theme-settings .row,
+.theme-settings .wcard,
+.theme-settings .courier-item,
+.theme-settings .app-block,
+.theme-settings .fb-row,
+.theme-settings .floor-sec {
+  background: var(--card2) !important;
+  border-radius: 10px !important;
+  border: none !important;
+}
+
+.theme-settings .wcard {
+  border-left: none !important;
+  box-shadow: inset 0 0 0 0.5px var(--border);
+}
+
+.theme-settings .srow {
+  padding: 11px 0 !important;
+}
+
+.theme-settings .srow-label {
+  font-size: 15px !important;
+  font-weight: 500 !important;
+}
+
+.theme-settings .inp,
+.theme-settings .row-inp,
+.theme-settings .wname-inp,
+.theme-settings .fb-inp,
+.theme-settings .mini-inp {
+  border-radius: 10px !important;
+  border-color: var(--border) !important;
+  background: var(--bg) !important;
+}
+
+.theme-settings .inp:focus,
+.theme-settings .row-inp:focus,
+.theme-settings .wname-inp:focus,
+.theme-settings .fb-inp:focus {
+  border-color: var(--a1) !important;
+  box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.15);
+}
+
+.theme-settings .toggle input:checked + .tslider {
+  background: var(--a3) !important;
+}
+
+.theme-settings .add-btn {
+  background: transparent !important;
+  border: 1.5px dashed var(--a1) !important;
+  color: var(--a1) !important;
+  border-radius: var(--group-radius) !important;
+  padding: 12px !important;
+}
+
+.theme-settings .note {
+  background: rgba(255, 149, 0, 0.08) !important;
+  border-color: rgba(255, 149, 0, 0.2) !important;
+  border-radius: var(--group-radius) !important;
+  color: #996600 !important;
+}
+
+.theme-settings .action-btn.ab-safe {
+  background: rgba(0, 122, 255, 0.08) !important;
+  border-color: rgba(0, 122, 255, 0.2) !important;
+  color: var(--a1) !important;
+  border-radius: var(--group-radius) !important;
+}
+
+.theme-settings .action-btn.ab-danger {
+  border-radius: var(--group-radius) !important;
+}
+
+.theme-settings #toast {
+  border-radius: 14px !important;
+  backdrop-filter: blur(12px);
+  bottom: 32px !important;
+}
+
+.theme-settings #settingsDate {
+  color: var(--a1) !important;
+}

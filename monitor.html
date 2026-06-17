@@ -1,28 +1,33 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="ko" class="theme-monitor">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>파레트 모니터</title>
 <link rel="apple-touch-icon" href="icon-monitor.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="파레트 모니터">
 <link rel="manifest" href="manifest-monitor.json">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#0B0F14">
+<link rel="stylesheet" href="css/monitor-theme.css">
 <style>
 :root{
-  --bg:#F2F4F6;--card:#FFFFFF;--card2:#F9FAFB;--border:#E5E8EB;
-  --text:#1A1A1A;--muted:#8C9EAA;
-  --a1:#03C75A;--a2:#FF6B00;--a3:#00B900;--a4:#5046E5;--a5:#FFA800;--a6:#FF4F8B;
-  --red:#FF3D3D;
-  --waiting:#FF6B00;
-  --shipped:#00B900;
+  --bg:#0B0F14;--card:#151B23;--card2:#1C2430;--border:#2A3441;
+  --text:#E8EDF4;--muted:#8B9AAB;
+  --a1:#22D3EE;--a2:#FB923C;--a3:#4ADE80;--a4:#818CF8;--a5:#FBBF24;--a6:#F472B6;
+  --red:#F87171;
+  --waiting:#FB923C;
+  --shipped:#4ADE80;
 }
 *{box-sizing:border-box;margin:0;padding:0;}
-body{font-family:'Segoe UI','Noto Sans KR',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+body{font-family:'Noto Sans KR','Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
 
 /* ── 헤더 ── */
-.hdr{background:#FFFFFF;border-bottom:2px solid var(--a1);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 1px 6px rgba(0,0,0,.07);}
+.hdr{background:var(--card);border-bottom:1px solid var(--border);padding:0 24px;height:58px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:200;box-shadow:0 1px 6px rgba(0,0,0,.07);}
 .hdr-title{font-size:18px;font-weight:900;color:var(--text);}
 .hdr-sub{font-size:10px;color:var(--muted);margin-top:2px;}
 .hdr-r{display:flex;align-items:center;gap:10px;}
@@ -32,15 +37,16 @@ body{font-family:'Segoe UI','Noto Sans KR',sans-serif;background:var(--bg);color
 .hdr-btn{background:rgba(3,199,90,.1);border:1.5px solid rgba(3,199,90,.35);color:var(--a1);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
 
 /* ── 탭 ── */
-.main-tabs{background:#FFFFFF;border-bottom:1px solid var(--border);display:flex;padding:0 24px;position:sticky;top:58px;z-index:100;}
+.main-tabs{background:var(--card);border-bottom:1px solid var(--border);display:flex;padding:0 24px;position:sticky;top:58px;z-index:100;}
 .main-tab{border:none;background:transparent;cursor:pointer;font-family:inherit;padding:10px 16px;font-size:13px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;}
 .main-tab.active{color:var(--a1);border-bottom-color:var(--a1);}
 .tab-badge{display:inline-block;background:var(--a2);color:#fff;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:900;margin-left:5px;}
 .tab-badge.green{background:var(--a3);}
+.tab-badge.purple{background:var(--a4);}
 
 /* ── 뷰 전환 ── */
 .view-bar{background:var(--card2);padding:8px 24px;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);}
-.view-toggle{display:flex;gap:5px;background:#E5E8EB;border-radius:8px;padding:3px;}
+.view-toggle{display:flex;gap:5px;background:var(--bg);border-radius:8px;padding:3px;border:1px solid var(--border);}
 .vt-btn{border:none;background:transparent;color:var(--muted);border-radius:6px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;}
 .vt-btn.active{background:var(--a1);color:#fff;}
 .filter-chips{display:flex;gap:6px;flex-wrap:wrap;}
@@ -407,21 +413,21 @@ function makePltCard(p, status, fbKey){
   top.appendChild(no); top.appendChild(cTag); top.appendChild(stTag);
   card.appendChild(top);
 
-  // 층 + 엘베 태그 (출고완료에만)
-  if(isShipped && p.floor){
+  // 층 태그 (대기/출고 모두) + 엘베/시간 태그 (출고완료만)
+  if(p.floor){
     var tagRow = document.createElement('div');
     tagRow.style.cssText='display:flex;gap:0;align-items:stretch;';
     var flTag = document.createElement('div');
     flTag.style.cssText='padding:2px 9px;font-size:9px;font-weight:700;color:#fff;background:'+FCOLORS[p.floor]+';';
     flTag.textContent = FN[p.floor]||p.floor;
     tagRow.appendChild(flTag);
-    if(ELEVATORS[p.elevator]){
+    if(isShipped && ELEVATORS[p.elevator]){
       var evTag = document.createElement('div');
       evTag.style.cssText='padding:2px 9px;font-size:9px;font-weight:800;color:#fff;background:'+(ELEV_COLOR[p.elevator]||'#555')+';';
       evTag.textContent = (ELEV_EMOJI[p.elevator]||'🛗')+' '+ELEVATORS[p.elevator];
       tagRow.appendChild(evTag);
     }
-    if(p.sentAt){
+    if(isShipped && p.sentAt){
       var tm=new Date(p.sentAt);
       var tmTag=document.createElement('div');
       tmTag.style.cssText='padding:2px 9px;font-size:9px;font-weight:800;color:#fff;background:#64748b;margin-left:auto;';
@@ -834,26 +840,26 @@ function showReport(){
   ALL_FLOORS.forEach(function(f){(waiting[f]||[]).forEach(function(p){totalWP++;totalWB+=p.totalBox||0;});});
   Object.keys(shipments||{}).forEach(function(k){var e=shipments[k];if(e&&e.pallets)e.pallets.forEach(function(p){totalSP++;totalSB+=p.totalBox||0;});});
   var doneCnt=ALL_FLOORS.filter(function(f){return doneStatus[f];}).length;
-  var html='<div style="color:#111;font-family:sans-serif;">';
+  var html='<div style="color:var(--text);font-family:sans-serif;">';
   html+='<div style="text-align:center;font-size:22px;font-weight:900;margin-bottom:4px;">출고 파레트 업무 보고서</div>';
-  html+='<div style="text-align:center;font-size:12px;color:#666;margin-bottom:16px;">'+dateStr+'</div>';
+  html+='<div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:16px;">'+dateStr+'</div>';
   html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;">';
-  [{l:'대기중',v:totalWP+'PLT',c:'#f97316'},{l:'출고완료',v:totalSP+'PLT',c:'#2ecc71'},{l:'총BOX',v:(totalWB+totalSB)+'BOX',c:'#3b9eff'},{l:'마감층',v:doneCnt+'/'+ALL_FLOORS.length,c:'#a78bfa'}].forEach(function(k){
-    html+='<div style="border:1px solid #ddd;border-radius:8px;padding:10px;text-align:center;"><div style="font-size:22px;font-weight:900;color:'+k.c+';">'+k.v+'</div><div style="font-size:10px;color:#666;">'+k.l+'</div></div>';
+  [{l:'대기중',v:totalWP+'PLT',c:'#FB923C'},{l:'출고완료',v:totalSP+'PLT',c:'#4ADE80'},{l:'총BOX',v:(totalWB+totalSB)+'BOX',c:'#22D3EE'},{l:'마감층',v:doneCnt+'/'+ALL_FLOORS.length,c:'#818CF8'}].forEach(function(k){
+    html+='<div style="border:1px solid var(--border);border-radius:8px;padding:10px;text-align:center;background:var(--card2);"><div style="font-size:22px;font-weight:900;color:'+k.c+';">'+k.v+'</div><div style="font-size:10px;color:var(--muted);">'+k.l+'</div></div>';
   });
   html+='</div>';
-  html+='<div style="font-size:13px;font-weight:800;border-bottom:2px solid #111;padding-bottom:3px;margin-bottom:8px;">택배사별 현황</div>';
-  html+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;"><thead><tr><th style="background:#f0f0f0;padding:6px;border:1px solid #ccc;text-align:left;">택배사</th><th style="background:#f0f0f0;padding:6px;border:1px solid #ccc;text-align:center;">대기PLT</th><th style="background:#f0f0f0;padding:6px;border:1px solid #ccc;text-align:center;">출고PLT</th><th style="background:#f0f0f0;padding:6px;border:1px solid #ccc;text-align:center;">합계BOX</th></tr></thead><tbody>';
+  html+='<div style="font-size:13px;font-weight:800;border-bottom:2px solid var(--border);padding-bottom:3px;margin-bottom:8px;">택배사별 현황</div>';
+  html+='<table style="width:100%;border-collapse:collapse;font-size:11px;margin-bottom:12px;"><thead><tr><th style="background:var(--card2);padding:6px;border:1px solid var(--border);text-align:left;color:var(--muted);">택배사</th><th style="background:var(--card2);padding:6px;border:1px solid var(--border);text-align:center;color:var(--muted);">대기PLT</th><th style="background:var(--card2);padding:6px;border:1px solid var(--border);text-align:center;color:var(--muted);">출고PLT</th><th style="background:var(--card2);padding:6px;border:1px solid var(--border);text-align:center;color:var(--muted);">합계BOX</th></tr></thead><tbody>';
   cfg.couriers.forEach(function(c){
     var wp=0,wb=0,sp=0,sb=0;
     ALL_FLOORS.forEach(function(f){(waiting[f]||[]).forEach(function(p){if(p.courierId===c.id){wp++;wb+=p.totalBox||0;}});});
     Object.keys(shipments||{}).forEach(function(k){var e=shipments[k];if(e&&e.pallets)e.pallets.forEach(function(p){if(p.courierId===c.id){sp++;sb+=p.totalBox||0;}});});
-    html+='<tr><td style="padding:5px 7px;border:1px solid #ddd;font-weight:700;">'+c.icon+' '+c.name+'</td><td style="padding:5px 7px;border:1px solid #ddd;text-align:center;">'+wp+'</td><td style="padding:5px 7px;border:1px solid #ddd;text-align:center;">'+sp+'</td><td style="padding:5px 7px;border:1px solid #ddd;text-align:center;font-weight:800;">'+(wb+sb)+'</td></tr>';
+    html+='<tr><td style="padding:5px 7px;border:1px solid var(--border);font-weight:700;">'+c.icon+' '+c.name+'</td><td style="padding:5px 7px;border:1px solid var(--border);text-align:center;">'+wp+'</td><td style="padding:5px 7px;border:1px solid var(--border);text-align:center;">'+sp+'</td><td style="padding:5px 7px;border:1px solid var(--border);text-align:center;font-weight:800;">'+(wb+sb)+'</td></tr>';
   });
   html+='</tbody></table>';
   html+='<div style="display:flex;gap:10px;margin-top:14px;">'
-    +'<button onclick="window.print()" style="flex:1;background:#111;color:#fff;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">🖨 프린트</button>'
-    +'<button id="closeReportModalBtn" style="flex:1;background:#f0f0f0;color:#333;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">닫기</button>'
+    +'<button onclick="window.print()" style="flex:1;background:var(--a1);color:#0B0F14;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">🖨 프린트</button>'
+    +'<button id="closeReportModalBtn" style="flex:1;background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;">닫기</button>'
     +'</div></div>';
   document.getElementById('reportModal').innerHTML=html;
   document.getElementById('reportOverlay').classList.add('show');
@@ -1175,7 +1181,7 @@ async function openRecovery(){
           +'</div>';
       });
     }
-    html+='<button onclick="closeRecovery()" style="width:100%;margin-top:8px;background:#eee;border:none;border-radius:8px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">닫기</button></div>';
+    html+='<button onclick="closeRecovery()" style="width:100%;margin-top:8px;background:var(--card2);color:var(--text);border:1px solid var(--border);border-radius:8px;padding:11px;font-size:13px;font-weight:800;cursor:pointer;font-family:inherit;">닫기</button></div>';
     box.innerHTML=html;
   }catch(e){ box.innerHTML='<div style="padding:24px;text-align:center;color:var(--red)">로드 실패: '+e.message+'</div>'; }
 }

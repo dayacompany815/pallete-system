@@ -1,0 +1,264 @@
+/* Monitor — 관제실 대시보드 (dark control room) */
+.theme-monitor {
+  --bg: #0B0F14;
+  --card: #151B23;
+  --card2: #1C2430;
+  --border: #2A3441;
+  --text: #E8EDF4;
+  --muted: #8B9AAB;
+  --a1: #22D3EE;
+  --a2: #FB923C;
+  --a3: #4ADE80;
+  --a4: #818CF8;
+  --a5: #FBBF24;
+  --a6: #F472B6;
+  --red: #F87171;
+  --waiting: #FB923C;
+  --shipped: #4ADE80;
+  --glow-cyan: rgba(34, 211, 238, 0.35);
+  --glow-green: rgba(74, 222, 128, 0.3);
+  --glow-orange: rgba(251, 146, 60, 0.35);
+}
+
+html.theme-monitor,
+html.theme-monitor body {
+  background: var(--bg) !important;
+  color: var(--text);
+}
+
+.theme-monitor body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    linear-gradient(rgba(34, 211, 238, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 80% 70% at 50% 30%, #000 20%, transparent 100%);
+}
+
+.theme-monitor .hdr,
+.theme-monitor .main-tabs,
+.theme-monitor .view-bar {
+  position: relative;
+  z-index: 100;
+}
+
+.theme-monitor .hdr {
+  background: linear-gradient(180deg, #121820 0%, #0E1319 100%) !important;
+  border-bottom: 1px solid var(--border) !important;
+  box-shadow: 0 1px 0 var(--glow-cyan), 0 8px 32px rgba(0, 0, 0, 0.4) !important;
+  height: 62px !important;
+}
+
+.theme-monitor .hdr-title {
+  color: var(--text) !important;
+  font-size: 19px !important;
+  letter-spacing: -0.3px;
+}
+
+.theme-monitor .hdr-title::before {
+  content: "◉ ";
+  color: var(--a1);
+  font-size: 12px;
+  vertical-align: middle;
+}
+
+.theme-monitor .hdr-sub {
+  color: var(--muted) !important;
+  font-family: ui-monospace, "SF Mono", monospace;
+  letter-spacing: 0.5px;
+}
+
+.theme-monitor .live-dot {
+  background: var(--a3) !important;
+  box-shadow: 0 0 12px var(--a3), 0 0 24px var(--glow-green) !important;
+}
+
+.theme-monitor .last-upd {
+  font-family: ui-monospace, "SF Mono", monospace;
+  color: var(--a1) !important;
+}
+
+.theme-monitor .hdr-btn {
+  background: rgba(34, 211, 238, 0.08) !important;
+  border-color: rgba(34, 211, 238, 0.35) !important;
+  color: var(--a1) !important;
+}
+
+.theme-monitor .hdr-btn:hover {
+  background: rgba(34, 211, 238, 0.15) !important;
+}
+
+.theme-monitor .main-tabs {
+  background: #0E1319 !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.theme-monitor .main-tab {
+  color: var(--muted);
+  transition: color 0.2s;
+}
+
+.theme-monitor .main-tab.active {
+  color: var(--a1) !important;
+  border-bottom-color: var(--a1) !important;
+  text-shadow: 0 0 20px var(--glow-cyan);
+}
+
+.theme-monitor .tab-badge {
+  box-shadow: 0 0 8px var(--glow-orange);
+}
+
+.theme-monitor .tab-badge.green {
+  box-shadow: 0 0 8px var(--glow-green);
+}
+
+.theme-monitor .tab-badge.purple {
+  background: var(--a4) !important;
+  box-shadow: 0 0 8px rgba(129, 140, 248, 0.4);
+}
+
+.theme-monitor .view-bar {
+  background: var(--card2) !important;
+  border-bottom-color: var(--border) !important;
+}
+
+.theme-monitor .view-toggle {
+  background: var(--bg) !important;
+  border: 1px solid var(--border);
+}
+
+.theme-monitor .vt-btn.active {
+  background: var(--a1) !important;
+  color: #0B0F14 !important;
+  font-weight: 800;
+}
+
+.theme-monitor .chip.active {
+  border-color: var(--a1) !important;
+  color: var(--a1) !important;
+  background: rgba(34, 211, 238, 0.1) !important;
+  box-shadow: 0 0 12px var(--glow-cyan);
+}
+
+.theme-monitor .main {
+  position: relative;
+  z-index: 1;
+}
+
+.theme-monitor .sum-card,
+.theme-monitor .kpi,
+.theme-monitor .floor-card,
+.theme-monitor .tbl-wrap,
+.theme-monitor .plt-card.waiting,
+.theme-monitor .plt-card.shipped {
+  background: var(--card) !important;
+  border-color: var(--border) !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+}
+
+.theme-monitor .sum-card::before {
+  opacity: 1;
+}
+
+.theme-monitor .sc-val,
+.theme-monitor .kpi-val {
+  font-family: ui-monospace, "SF Mono", "Noto Sans KR", monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+}
+
+.theme-monitor .plt-card.waiting {
+  border-color: rgba(251, 146, 60, 0.5) !important;
+  box-shadow: 0 0 20px var(--glow-orange), inset 0 1px 0 rgba(251, 146, 60, 0.1) !important;
+}
+
+.theme-monitor .plt-card.shipped {
+  border-color: rgba(74, 222, 128, 0.45) !important;
+  box-shadow: 0 0 16px var(--glow-green) !important;
+}
+
+.theme-monitor .sec-title.waiting-title {
+  background: rgba(251, 146, 60, 0.08) !important;
+  border-color: rgba(251, 146, 60, 0.25) !important;
+}
+
+.theme-monitor .sec-title.shipped-title {
+  background: rgba(74, 222, 128, 0.08) !important;
+  border-color: rgba(74, 222, 128, 0.25) !important;
+}
+
+.theme-monitor th {
+  background: var(--card2) !important;
+  color: var(--muted) !important;
+  border-color: var(--border) !important;
+}
+
+.theme-monitor td {
+  border-color: var(--border) !important;
+  color: var(--text);
+}
+
+.theme-monitor tr:hover td {
+  background: rgba(34, 211, 238, 0.04) !important;
+}
+
+.theme-monitor tfoot td {
+  background: var(--card2) !important;
+}
+
+.theme-monitor .tbl-hdr,
+.theme-monitor .tbl-title,
+.theme-monitor .floor-card-hdr {
+  background: var(--card2) !important;
+  border-color: var(--border) !important;
+  color: var(--text);
+}
+
+.theme-monitor .alert-bar {
+  background: rgba(74, 222, 128, 0.06) !important;
+  border-color: rgba(74, 222, 128, 0.2) !important;
+}
+
+.theme-monitor .alert-chip {
+  background: var(--card) !important;
+  border-color: var(--a3) !important;
+  color: var(--text);
+}
+
+.theme-monitor .floor-stat-row {
+  border-color: var(--border) !important;
+}
+
+.theme-monitor .return-btn {
+  background: rgba(251, 146, 60, 0.1) !important;
+  border-color: rgba(251, 146, 60, 0.35) !important;
+}
+
+.theme-monitor .overlay {
+  background: rgba(0, 0, 0, 0.75) !important;
+  backdrop-filter: blur(4px);
+}
+
+.theme-monitor .report-modal {
+  background: var(--card) !important;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.theme-monitor .plt-tot,
+.theme-monitor .plt-detail {
+  color: var(--text);
+}
+
+.theme-monitor .plt-detail-box,
+.theme-monitor .plt-floor-tag,
+.theme-monitor .sc-label,
+.theme-monitor .sc-sub,
+.theme-monitor .kpi-label,
+.theme-monitor .kpi-sub {
+  color: var(--muted) !important;
+}

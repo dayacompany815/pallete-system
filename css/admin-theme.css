@@ -1,0 +1,155 @@
+/* Admin — 모바일 경영 요약 (executive dashboard) */
+.theme-admin {
+  --bg: #EEF2FF;
+  --card: #FFFFFF;
+  --card2: #F8FAFC;
+  --border: #E2E8F0;
+  --text: #0F172A;
+  --muted: #64748B;
+  --a1: #6366F1;
+  --a2: #F97316;
+  --a3: #10B981;
+  --a4: #8B5CF6;
+  --a5: #F59E0B;
+  --a6: #EC4899;
+  --red: #EF4444;
+  --gradient-hero: linear-gradient(135deg, #6366F1 0%, #8B5CF6 50%, #A855F7 100%);
+  --shadow-card: 0 4px 24px rgba(99, 102, 241, 0.08), 0 1px 3px rgba(15, 23, 42, 0.06);
+  --shadow-lg: 0 12px 40px rgba(99, 102, 241, 0.15);
+}
+
+html.theme-admin,
+html.theme-admin body {
+  background: var(--bg);
+  background-image:
+    radial-gradient(ellipse 100% 60% at 50% -20%, rgba(99, 102, 241, 0.12), transparent),
+    radial-gradient(ellipse 60% 40% at 100% 100%, rgba(168, 85, 247, 0.08), transparent);
+}
+
+.theme-admin .hdr {
+  background: rgba(255, 255, 255, 0.85) !important;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: none !important;
+  box-shadow: 0 1px 0 var(--border), var(--shadow-card) !important;
+}
+
+.theme-admin .hdr-title {
+  background: var(--gradient-hero);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  font-size: 16px !important;
+}
+
+.theme-admin .hdr img {
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  border: 2px solid #fff;
+}
+
+.theme-admin .live-dot {
+  background: var(--a3) !important;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.6) !important;
+}
+
+.theme-admin .refresh-fab {
+  background: rgba(99, 102, 241, 0.08) !important;
+  border-color: rgba(99, 102, 241, 0.25) !important;
+  color: var(--a1) !important;
+  transition: transform 0.15s, background 0.15s;
+}
+
+.theme-admin .refresh-fab:active {
+  transform: scale(0.94);
+}
+
+.theme-admin .tab-nav {
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(8px);
+  border-bottom-color: var(--border) !important;
+}
+
+.theme-admin .tab-btn.active {
+  color: var(--a1) !important;
+  border-bottom-color: var(--a1) !important;
+}
+
+.theme-admin .big-card {
+  background: var(--gradient-hero) !important;
+  border: none !important;
+  box-shadow: var(--shadow-lg);
+  color: #fff;
+}
+
+.theme-admin .big-card::before {
+  display: none;
+}
+
+.theme-admin .big-card .bgn-lbl {
+  color: rgba(255, 255, 255, 0.75) !important;
+}
+
+.theme-admin .big-card .bgn-val {
+  color: #fff !important;
+  font-size: 26px !important;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.theme-admin .card,
+.theme-admin .floor-sec,
+.theme-admin .pharma-card,
+.theme-admin .alert-card {
+  box-shadow: var(--shadow-card);
+  border-color: var(--border);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.theme-admin .card-hdr,
+.theme-admin .floor-sec-hdr,
+.theme-admin .pharma-hdr {
+  background: linear-gradient(90deg, var(--card2), #fff);
+}
+
+.theme-admin .alert-card {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.03)) !important;
+  border-color: rgba(16, 185, 129, 0.3) !important;
+}
+
+.theme-admin .alert-title {
+  color: var(--a3) !important;
+}
+
+.theme-admin .c-plt,
+.theme-admin .pharma-total,
+.theme-admin .fcc-val,
+.theme-admin .pr-box {
+  font-variant-numeric: tabular-nums;
+}
+
+.theme-admin .pr-no {
+  background: var(--gradient-hero) !important;
+  color: #fff !important;
+}
+
+.theme-admin .plt-row {
+  border-left: 3px solid transparent;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.theme-admin .plt-row:hover {
+  border-left-color: var(--a1);
+  background: #fff;
+}
+
+.theme-admin .done-chip {
+  background: rgba(16, 185, 129, 0.12) !important;
+  color: var(--a3) !important;
+}
+
+.theme-admin .empty {
+  opacity: 0.85;
+}
+
+.theme-admin #adminDate {
+  color: var(--a4) !important;
+}

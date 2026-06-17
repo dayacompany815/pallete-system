@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>출고지기 — 파레트 출고 현황</title>
+<style>
+  :root{
+    --green:#03C75A; --green-d:#02a64b; --blue:#2d6cdf; --purple:#7b5cff;
+    --ink:#1a1a1a; --gray:#667; --line:#e5e8eb; --bg:#f7f8fa; --soft:#f0fbf4;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    color:var(--ink); background:var(--bg); line-height:1.55;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .page{
+    width:210mm; min-height:297mm; margin:0 auto 10mm; background:#fff;
+    padding:18mm 16mm; position:relative; overflow:hidden;
+  }
+  /* 가운데 로고 워터마크 */
+  .wm{
+    position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    width:62%; max-width:150mm; opacity:.05; pointer-events:none; z-index:0;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+  }
+  .page > *:not(.wm){ position:relative; z-index:1; }
+
+  /* 헤더 */
+  header{
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:3px solid var(--green); padding-bottom:14px; margin-bottom:22px;
+    gap:14px;
+  }
+  .brand{display:flex; align-items:center; gap:12px;}
+  .brand .logo{width:46px; height:46px; border-radius:10px; object-fit:cover; border:1px solid var(--line); flex:none;}
+  .brand .co{font-size:13px; color:var(--gray); font-weight:600;}
+  .brand h1{font-size:20px; font-weight:800; letter-spacing:-.4px; margin-top:1px;}
+  .meta{text-align:right; font-size:12px; color:var(--gray); line-height:1.7; flex:none;}
+  .meta b{color:var(--ink);}
+
+  /* 섹션 */
+  section{margin-bottom:24px;}
+  .sec-title{display:flex; align-items:center; gap:8px; font-size:15px; font-weight:800; margin-bottom:13px;}
+  .sec-title::before{content:""; width:5px; height:16px; background:var(--green); border-radius:3px;}
+  .sec-sub{font-size:12px; color:var(--gray); font-weight:600; margin-left:auto;}
+
+  .lead{background:var(--soft); border:1px solid #d9f2e2; border-radius:12px; padding:16px 18px; font-size:13.5px; color:#234; line-height:1.75;}
+  .lead b{color:var(--green-d);}
+
+  /* 구성 카드 */
+  .apps{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .app{border:1px solid var(--line); border-radius:12px; padding:14px 16px;}
+  .app .tag{display:inline-block; font-size:11px; font-weight:700; color:#fff; background:var(--green); padding:2px 9px; border-radius:20px; margin-bottom:8px;}
+  .app.blue .tag{background:var(--blue);} .app.purple .tag{background:var(--purple);} .app.gray .tag{background:#8a94a0;}
+  .app h3{font-size:14px; font-weight:800; margin-bottom:5px;}
+  .app p{font-size:12.5px; color:var(--gray); line-height:1.65;}
+
+  /* 사용 흐름 */
+  .flow{display:grid; grid-template-columns:repeat(4,1fr); gap:10px;}
+  .step{position:relative; border:1px solid var(--line); border-radius:12px; padding:14px 13px; background:#fff;}
+  .step .n{width:24px; height:24px; border-radius:50%; background:var(--green); color:#fff; font-weight:800; font-size:13px; display:flex; align-items:center; justify-content:center; margin-bottom:8px;}
+  .step h4{font-size:13px; font-weight:800; margin-bottom:4px;}
+  .step p{font-size:11.5px; color:var(--gray); line-height:1.55;}
+  .step .arr{position:absolute; right:-9px; top:50%; transform:translateY(-50%); color:var(--green); font-weight:900; font-size:16px; z-index:1;}
+  .step:last-child .arr{display:none;}
+
+  /* 기능 상세 */
+  .feat{display:grid; grid-template-columns:1fr 1fr; gap:11px 24px;}
+  .item{display:flex; gap:10px; font-size:13px;}
+  .item .chk{flex:none; width:22px; height:22px; border-radius:7px; background:var(--soft); color:var(--green-d); font-weight:900; font-size:12px; display:flex; align-items:center; justify-content:center; margin-top:1px;}
+  .item b{display:block; font-weight:700; margin-bottom:1px;}
+  .item span{color:var(--gray); font-size:11.5px; line-height:1.5;}
+
+  /* 효과 */
+  .effects{display:grid; grid-template-columns:repeat(3,1fr); gap:12px;}
+  .eff{border:1px solid var(--line); border-radius:12px; padding:16px; text-align:center;}
+  .eff .big{font-size:23px; font-weight:900; color:var(--green-d); letter-spacing:-.5px;}
+  .eff .lbl{font-size:12px; color:var(--gray); margin-top:5px; line-height:1.5;}
+
+  /* 표 */
+  table{width:100%; border-collapse:collapse; font-size:12.5px;}
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line);}
+  th{background:var(--bg); font-weight:700; color:#445; width:128px;}
+
+  footer{margin-top:28px; padding-top:13px; border-top:1px solid var(--line); font-size:11px; color:#9aa3ad; display:flex; justify-content:space-between;}
+
+  /* ===== 화면 미리보기 ===== */
+  .preview-grid{display:grid; grid-template-columns:1fr 1fr; gap:18px;}
+  .pv{border:1px solid var(--line); border-radius:14px; padding:16px; background:linear-gradient(180deg,#fbfcfd,#fff);}
+  .pv-head{display:flex; align-items:baseline; gap:8px; margin-bottom:12px;}
+  .pv-head .tag{font-size:10.5px; font-weight:700; color:#fff; background:var(--green); padding:2px 8px; border-radius:20px;}
+  .pv-head .tag.blue{background:var(--blue);} .pv-head .tag.purple{background:var(--purple);}
+  .pv-head h3{font-size:13.5px; font-weight:800;}
+  .pv .desc{font-size:11.5px; color:var(--gray); line-height:1.6; margin-top:11px;}
+  .pv .desc b{color:var(--ink);}
+
+  /* 폰 프레임 */
+  .phone{width:208px; margin:0 auto; border:7px solid #14181d; border-radius:26px; background:#fff; overflow:hidden; box-shadow:0 8px 22px rgba(20,30,40,.13);}
+  .phone .notch{height:16px; background:#14181d; position:relative;}
+  .phone .notch::after{content:""; position:absolute; left:50%; top:5px; transform:translateX(-50%); width:46px; height:5px; border-radius:5px; background:#3a4250;}
+  .scr{font-size:9.5px; line-height:1.4;}
+  .scr .top{background:var(--green); color:#fff; padding:8px 10px; display:flex; justify-content:space-between; align-items:center;}
+  .scr .top.mon{background:#1f2733;}
+  .scr .top b{font-size:11px; font-weight:800;}
+  .scr .top .out{font-size:8.5px; background:rgba(255,255,255,.22); padding:2px 6px; border-radius:10px;}
+  .scr .tabs{display:flex; gap:3px; padding:7px 8px 2px; flex-wrap:wrap; background:#fff;}
+  .scr .tabs span{font-size:8.5px; padding:3px 7px; border-radius:12px; background:#eef1f4; color:#667;}
+  .scr .tabs span.on{background:var(--green); color:#fff; font-weight:700;}
+  .scr .tabs.mon span.on{background:#1f2733;}
+  .scr .body{padding:8px 9px 11px;}
+
+  .chips{display:flex; gap:4px; margin-bottom:8px;}
+  .chips .c{flex:1; text-align:center; font-size:9px; padding:5px 0; border-radius:7px; background:#eef1f4; color:#556; font-weight:700;}
+  .chips .c.on{background:var(--green); color:#fff;}
+
+  .plt{border:1px solid var(--line); border-radius:8px; padding:6px 8px; margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;}
+  .plt .no{font-weight:800; font-size:10px;}
+  .plt .dc{font-size:8px; padding:2px 6px; border-radius:10px; color:#fff; font-weight:700;}
+  .dc.koryo{background:#f5a623;} .dc.hanjin{background:#2d6cdf;} .dc.cj{background:#e0457b;} .dc.yongma{background:#34b3a0;}
+
+  .elv{display:flex; gap:5px; margin:9px 0 7px;}
+  .elv .e{flex:1; text-align:center; font-size:8.5px; padding:5px 0; border-radius:7px; border:1px solid var(--line); font-weight:700;}
+  .elv .e.g{border-color:var(--green); color:var(--green-d); background:var(--soft);}
+  .elv .e.b{border-color:var(--blue); color:var(--blue); background:#eef3fd;}
+  .send{background:var(--green); color:#fff; text-align:center; font-weight:800; font-size:10px; padding:8px 0; border-radius:9px;}
+
+  /* KPI (모니터) */
+  .kpi{display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:8px;}
+  .kpi .k{border:1px solid var(--line); border-radius:8px; padding:6px 7px;}
+  .kpi .k .v{font-size:13px; font-weight:900;}
+  .kpi .k .v.g{color:var(--green-d);} .kpi .k .v.b{color:var(--blue);} .kpi .k .v.p{color:var(--purple);}
+  .kpi .k .t{font-size:8px; color:#889;}
+  .minrow{display:flex; justify-content:space-between; font-size:9px; padding:4px 2px; border-bottom:1px dashed var(--line);}
+  .minrow b{font-weight:800;}
+  .bar{height:6px; border-radius:6px; background:#eef1f4; overflow:hidden; margin:3px 0 7px;}
+  .bar i{display:block; height:100%; background:var(--green); border-radius:6px;}
+  .mini-title{font-size:9px; font-weight:800; color:#445; margin:8px 0 5px;}
+
+  /* 인쇄 */
+  @page{ size:A4; margin:11mm; }
+  @media print{
+    html,body{background:#fff;}
+    .page{margin:0; padding:0; width:auto; min-height:0; page-break-after:always; break-after:page;}
+    .page:last-child{page-break-after:auto; break-after:auto;}
+    .noprint{display:none;}
+    .pv,.app,.step,.eff,.phone{box-shadow:none;}
+    /* 한 덩어리는 페이지 중간에서 잘리지 않게 */
+    .app,.step,.eff,.pv,.phone,.item,tr,.minrow{break-inside:avoid;}
+    /* 인쇄 시 세로 여백 압축 (빈칸 줄이기) */
+    section{margin-bottom:15px;}
+    header{margin-bottom:15px; padding-bottom:11px;}
+    .sec-title{margin-bottom:10px;}
+    footer{margin-top:16px;}
+  }
+  .toolbar{max-width:210mm; margin:14px auto 0; text-align:right;}
+  .toolbar button{background:var(--green); color:#fff; border:0; padding:9px 18px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer;}
+
+  /* 반응형 (폰에서 보기) */
+  @media (max-width:680px){
+    body{background:#fff;}
+    .page{width:100%; min-height:auto; padding:20px 15px; margin-bottom:0; border-bottom:8px solid var(--bg);}
+    header{flex-direction:column; align-items:flex-start; gap:10px;}
+    .meta{text-align:left;}
+    .brand h1{font-size:17px;}
+    .apps,.effects,.feat,.flow,.preview-grid{grid-template-columns:1fr;}
+    .step .arr{display:none;}
+    .toolbar{position:sticky; top:0; padding:8px 12px; background:#fff; z-index:9; border-bottom:1px solid var(--line);}
+  }
+</style>
+</head>
+<body>
+
+<div class="toolbar noprint">
+  <button onclick="window.print()">🖨️ 인쇄 / PDF로 저장</button>
+</div>
+
+<!-- ========== 1페이지 : 개요 · 구성 · 사용흐름 ========== -->
+<div class="page">
+  <header>
+    <div class="brand">
+      <img class="logo" src="data:image/jpeg;base64,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" alt="로고">
+      <div>
+        <div class="co">📦 출고지기</div>
+        <h1>파레트 출고, 한눈에</h1>
+      </div>
+    </div>
+    <div class="meta">
+      <div><b>2026. 06. 10.</b> 기준</div>
+      <div>DAYA COMPANY</div>
+    </div>
+  </header>
+
+  <section>
+    <div class="sec-title">한눈에 보기</div>
+    <div class="lead">
+      창고 <b>파레트 출고 작업</b>을 작업자 입력 → 출고팀 실시간 확인 → 마감·통계까지 한 흐름으로 잇는
+      <b>모바일 우선 웹 시스템</b>입니다. 작업자는 휴대폰으로 층별 파레트를 입력·출고하고,
+      출고팀은 PC 통합현황에서 전 층 상황을 실시간으로 봅니다.
+      <b>별도 설치·전용 서버 없이</b> 휴대폰·PC 브라우저에서 바로 사용하며, 홈 화면에 앱처럼 추가할 수 있습니다.
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title">무엇으로 이뤄져 있나 <span class="sec-sub">4개 앱 · 실시간 연동</span></div>
+    <div class="apps">
+      <div class="app">
+        <span class="tag">작업자 · 폰</span>
+        <h3>작업자용 (worker)</h3>
+        <p>로그인 후 휴대폰으로 층별 파레트를 입력하고, 택배사를 지정해 엘리베이터(사무엘베·입고엘베)별로 출고 전송. 예상 수량·제약사 입력도 가능.</p>
+      </div>
+      <div class="app blue">
+        <span class="tag">출고팀 · PC</span>
+        <h3>통합현황 (monitor)</h3>
+        <p>출고팀 PC 전용 대형 화면. 대기중·출고완료·마감현황·통계·예상현황·과거데이터 탭으로 전 층을 한눈에. 매시간 자동 백업·복구.</p>
+      </div>
+      <div class="app purple">
+        <span class="tag">관리자 · 폰</span>
+        <h3>관리자용 (admin)</h3>
+        <p>통합현황의 휴대폰 버전. 외부·이동 중에도 동일한 데이터로 모든 탭을 슬라이드하며 확인.</p>
+      </div>
+      <div class="app gray">
+        <span class="tag">설정</span>
+        <h3>설정 (settings)</h3>
+        <p>택배사·제약사·슬랙 알림 등 환경을 한곳에서 관리. 변경하면 모든 작업자 화면에 자동 동기화.</p>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title">이렇게 사용합니다 <span class="sec-sub">현장 업무 흐름</span></div>
+    <div class="flow">
+      <div class="step"><div class="n">1</div><h4>작업자 입력</h4><p>휴대폰에서 층 선택 → 파레트 번호·택배사 입력</p><span class="arr">›</span></div>
+      <div class="step"><div class="n">2</div><h4>엘베별 출고</h4><p>사무엘베·입고엘베 선택 후 전송 → 슬랙 알림</p><span class="arr">›</span></div>
+      <div class="step"><div class="n">3</div><h4>실시간 확인</h4><p>출고팀 PC·관리자 폰에 즉시 반영, 전 층 현황</p><span class="arr">›</span></div>
+      <div class="step"><div class="n">4</div><h4>마감·통계</h4><p>층별 마감 보고 → PLT/BOX·택배사별 자동 집계</p><span class="arr">›</span></div>
+    </div>
+  </section>
+
+  <footer><span>📦 출고지기 · DAYA COMPANY</span><span>1 / 3</span></footer>
+</div>
+
+<!-- ========== 2페이지 : 화면 미리보기 ========== -->
+<div class="page">
+  <header>
+    <div class="brand">
+      <img class="logo" src="data:image/jpeg;base64,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" alt="로고">
+      <div><div class="co">📦 출고지기</div><h1>화면 미리보기</h1></div>
+    </div>
+    <div class="meta"><div><b>2026. 06. 10.</b> 기준</div><div>DAYA COMPANY</div></div>
+  </header>
+
+  <p style="font-size:12.5px;color:var(--gray);margin-bottom:16px;">
+    아래는 실제 운영 화면의 예시 구성입니다. (표시된 숫자·번호는 예시이며, 실제로는 입력한 데이터가 실시간으로 표시됩니다.)
+  </p>
+
+  <div class="preview-grid">
+    <!-- 작업자 화면 -->
+    <div class="pv">
+      <div class="pv-head"><span class="tag">작업자 · 폰</span><h3>파레트 입력 · 출고</h3></div>
+      <div class="phone">
+        <div class="notch"></div>
+        <div class="scr">
+          <div class="top"><b>파레트 관리 시스템</b><span class="out">로그아웃</span></div>
+          <div class="tabs"><span class="on">입력</span><span>대기</span><span>예상</span><span>제약사</span></div>
+          <div class="body">
+            <div class="chips"><div class="c">B1</div><div class="c on">1F</div><div class="c">3F</div><div class="c">4F</div><div class="c">5F</div></div>
+            <div class="plt"><span class="no">PLT-1024</span><span class="dc koryo">고려</span></div>
+            <div class="plt"><span class="no">PLT-1025</span><span class="dc hanjin">한진</span></div>
+            <div class="plt"><span class="no">PLT-1026</span><span class="dc cj">CJ</span></div>
+            <div class="elv"><div class="e g">🟢 사무엘베</div><div class="e b">🔵 입고엘베</div></div>
+            <div class="send">선택 파레트 출고 전송 ▸</div>
+          </div>
+        </div>
+      </div>
+      <div class="desc">층을 고르고 <b>파레트 번호·택배사</b>를 입력한 뒤, <b>엘리베이터</b>를 선택해 출고를 전송합니다. 전송과 동시에 슬랙 알림이 발송됩니다.</div>
+    </div>
+
+    <!-- 통합현황 화면 -->
+    <div class="pv">
+      <div class="pv-head"><span class="tag blue">출고팀 · PC</span><h3>통합현황 모니터</h3></div>
+      <div class="phone" style="width:230px;">
+        <div class="notch"></div>
+        <div class="scr">
+          <div class="top mon"><b>파레트 모니터</b><span class="out">전층현황</span></div>
+          <div class="tabs mon"><span class="on">⏳대기중</span><span>✅출고완료</span><span>🏁마감</span><span>📈통계</span></div>
+          <div class="body">
+            <div class="kpi">
+              <div class="k"><div class="v">128</div><div class="t">총 대기 PLT</div></div>
+              <div class="k"><div class="v g">412</div><div class="t">총 BOX</div></div>
+              <div class="k"><div class="v b">76%</div><div class="t">출고율</div></div>
+              <div class="k"><div class="v p">92%</div><div class="t">달성률</div></div>
+            </div>
+            <div class="mini-title">택배사별 대기 / 출고</div>
+            <div class="minrow"><span>🟠 고려택배</span><b>34 / 58</b></div>
+            <div class="minrow"><span>🔵 한진</span><b>21 / 40</b></div>
+            <div class="minrow"><span>🟣 CJ</span><b>18 / 33</b></div>
+            <div class="minrow"><span>🟢 용마</span><b>9 / 25</b></div>
+            <div class="mini-title">1F 진행률</div>
+            <div class="bar"><i style="width:76%"></i></div>
+          </div>
+        </div>
+      </div>
+      <div class="desc">출고팀 PC에서 <b>대기·출고·마감·통계</b>를 실시간으로 확인합니다. 총 PLT/BOX, <b>출고율·달성률</b>, 택배사별·층별 현황이 한 화면에 모입니다.</div>
+    </div>
+  </div>
+
+  <!-- 관리자 폰 (가로 한 칸) -->
+  <div class="pv" style="margin-top:18px;display:grid;grid-template-columns:208px 1fr;gap:20px;align-items:center;">
+    <div class="phone" style="margin:0;">
+      <div class="notch"></div>
+      <div class="scr">
+        <div class="top" style="background:#7b5cff;"><b>파레트 관리자</b><span class="out">◀ 1/7 ▶</span></div>
+        <div class="tabs"><span style="background:#7b5cff;color:#fff;font-weight:700;">📈 통계</span><span>예상</span><span>마감</span></div>
+        <div class="body">
+          <div class="kpi"><div class="k"><div class="v p">540</div><div class="t">오늘 출고 PLT</div></div><div class="k"><div class="v g">92%</div><div class="t">예상 대비 달성</div></div></div>
+          <div class="minrow"><span>지하1 (B1)</span><b>88 PLT</b></div>
+          <div class="minrow"><span>1F</span><b>152 PLT</b></div>
+          <div class="minrow"><span>3F</span><b>140 PLT</b></div>
+          <div class="minrow"><span>4F · 5F</span><b>160 PLT</b></div>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="pv-head"><span class="tag purple">관리자 · 폰</span><h3>이동 중에도 현황 확인</h3></div>
+      <div class="desc" style="margin-top:8px;">
+        통합현황과 <b>똑같은 데이터</b>를 휴대폰에서 7개 탭 슬라이드로 확인합니다.
+        사무실 밖·이동 중에도 <b>오늘 출고량, 예상 대비 달성률, 층별 실적</b>을 즉시 파악할 수 있어
+        밖에서 현황을 챙길 때 딱 맞습니다.
+      </div>
+    </div>
+  </div>
+
+  <footer><span>📦 출고지기 · DAYA COMPANY</span><span>2 / 3</span></footer>
+</div>
+
+<!-- ========== 3페이지 : 기능 · 효과 · 기술 ========== -->
+<div class="page">
+  <header>
+    <div class="brand">
+      <img class="logo" src="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAlgCWAAD/4QE+RXhpZgAATU0AKgAAAAgABwESAAMAAAABAAEAAAEaAAUAAAABAAAAYgEbAAUAAAABAAAAagEoAAMAAAABAAIAAAExAAIAAAAmAAAAcgEyAAIAAAAUAAAAmIdpAAQAAAABAAAArAAAAAAASt9yAAB/5wBK33IAAH/nQW5kcm9pZCBCUDRBLjI1MTIwNS4wMDYuUzkxOE5LU1U3RlpEVAAyMDI2OjA2OjA5IDIwOjIwOjAwAAAIkAMAAgAAABQAAAESkBAAAgAAAAcAAAEmkBEAAgAAAAcAAAEukggAAwAAAAEAAAAAkpEAAgAAAAQ2MDUAoAEAAwAAAAEAAQAAoAIABAAAAAEAAACMoAMABAAAAAEAAACIAAAAADIwMjY6MDY6MDkgMjA6MjA6MDAAKzA5OjAwAAArMDk6MDAAAP/tADhQaG90b3Nob3AgMy4wADhCSU0EBAAAAAAAADhCSU0EJQAAAAAAENQdjNmPALIE6YAJmOz4Qn7/wAARCACIAIwDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9sAQwACAgICAgIDAgIDBQMDAwUGBQUFBQYIBgYGBgYICggICAgICAoKCgoKCgoKDAwMDAwMDg4ODg4PDw8PDw8PDw8P/9sAQwECAgIEBAQHBAQHEAsJCxAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQ/90ABAAJ/9oADAMBAAIRAxEAPwD5q+Af/BLq1/aM+HGn/En4ffFvTprO7G2eB7GXz7Wdfvwyrv4ZT36EYIr2n/hyF4z/AOio6f8A+AE3/wAXXx5/wTP+NXjr4a/tO+FvB/h6+b+w/Gt2thqVm5JhkVlO2QLniRCMq34Hiv65hQB/O5/w5C8Z/wDRUdP/APACb/4uj/hyF4z/AOio6f8A+AE3/wAXX9ElFAH87f8Aw5C8Z/8ARUdP/wDACb/4uj/hyF4z/wCio6f/AOAE3/xdfS3x1/4K16V8Evi94p+FFx8PZtUk8M3jWhuVvVjEuFDbgpQ46+teTf8AD77RP+iXXH/gen/xugDgv+HIXjP/AKKjp/8A4ATf/F0f8OQvGf8A0VHT/wDwAm/+Lr7K/ZV/4KeaZ+078Y9P+Elr4Gm0OS/t7if7U92swUW6b8bQo69OtfqyKAP53P8AhyF4z/6Kjp//AIATf/F0h/4Ih+MwpP8AwtHT+Bn/AI8Jv/i6/olpsn+rb6H+VAH8Ffi3QG8LeKNY8MvMLh9IvLizaQDAc28jRlgD0B25xXO16H8Xf+SseNP+w3qX/pTJXnuDjNAEtvBNdTpbW6NJLKwVEUZZmY4AAHJJPQV+xnwr/wCCN/xX8d+AtI8XeK/Ftn4T1DVIhOdMntZJpoEflBIysAGK4JXtnB5r2H/gl9+wU1w9h+0l8Y9MHlLtm8PadcL95geLyVGHQf8ALIHr970r+gRcgc9aAP53P+HIXjP/AKKjp/8A4ATf/F0f8OQvGf8A0VHT/wDwAm/+Lr+iSms6oCzkKFGSTwAPU0AfzJfGT/gkV4r+EHwt8TfE67+IljqMPhqykvHt0spUaUR4+UMXIBOfSvx2r9tP+Cm37dkvxK1O8/Z4+Dt68vhvT3ZdavbcnF9PEcmBCvWGMjLHozD0HP4mtwcUAf/Q/LX9g/8A5PA+FX/Yah/9Bav7Qq/i9/YP/wCTwPhV/wBhqH/0Fq/tCoAKUdaSlHWgD+MP9vj/AJPG+K3/AGGX/wDRaV8hV9e/t8f8njfFb/sMv/6LSvkKgD9Kf+CTX/J53h7/ALB2pf8Aog1/WeOlfyY/8Em1Yftm+HiR/wAw/Uv/AESa/rOHSgApsn+rb6H+VOzivmH9q79p3wT+y58Lr3xt4llSfU50eLS9PDAS3l0R8qgdQi9XbsPfFAH8dPxcGfix40H/AFG9S/8ASmSv0i/4JtfsJT/HjxLD8XPiZZsngDRJswQOCP7UuoyCEHT9yh5c/wAR+Ud68j/Y6/ZO8U/tp/GbUPEuvQPp3gyK+lv9avIwVVnndpfssDHOXcnH+yvJ7V/Wb4T8K6B4I8N6b4R8LWUenaTpMCW9rbxDCRxRjCgf1Pc80AbcFvBawx29tGsUUShERRhVVRgAAcAAVNRSZFAATgV+J/8AwU0/bpn8K29x+zT8F7oz+J9XX7PrF3bEs9rHN8otYtvPnSZw2OVHHU8e/wD/AAUO/bjsP2aPBjeCPAl1FcfEXX4isCAhv7Ot3BBuZAOj9o1PU89Bz8t/8E0f2F9QN3D+1J8erWW41q+c3Wi2d6C0gZyWN9cK/Jdicxg9PvdcUAcl8NP2FIfgH+xX8T/i58TLVZPiBrnhy4aGFwG/su1kCnYOv75x989h8vrX4FV/ar+2z/yab8VP+wHc/wBK/iqoA//R/LX9g/8A5PA+FX/Yah/9Bav7Qq/i9/YP/wCTwPhV/wBhqH/0Fq/tCoAKUdaSlHWgD+MP9vj/AJPG+K3/AGGX/wDRaV8lWtrcXtxFaWkbTTzuqRxoNzOzHAVQOSSegr61/b3Gf2xvit/2GX/9FpX6Uf8ABK79hk6lcWn7S/xZ07NnAwfw7Yzp/rJFP/H46MPuqf8AVep+bsKAPsH/AIJrfsRRfs++DU+KHxDsh/wsHxHCCEfk6bZyAEQjsJH6yHt93sa/VKiud8WeLPD3gbw5qPi3xXfR6bpGkwvcXNxK21I40GSSfX0Hc8UAcb8ZPjF4G+Bfw+1T4kfEK+Wy0rTEJx1kmlP3Iol6s7ngAfU8V/L2x+N//BUP9p0HD2ukxMB3Nro2lB/wBkI/F39hxrftI/HX4q/8FF/2gtM+HHwxtJ28OwXDwaNYchAmcSX1zjgEqNxJ+6vA56/0R/sofsv+DP2V/hfaeBvDaJc6ncbZtV1HaBJeXRHJz12L0Rew9yaAPS/gz8HvBHwJ+HulfDX4f2Qs9K0uPbn/AJaTSnl5pW/idzyT+A4r1SiigAr46/bO/a38KfsofDOfXrt47zxTqatFo2nE/NNN3kcDkRR5yx79Bya9W/aD+PfgX9nL4Z6l8SvHVyEgtVK21spHnXlyR8kMQPUsep6AZJr+er9nr4beOP8Agpx+01rXxT+Ld9s8J+HpIZb21WQ/u7dy32axt1/hVth3t6AnqaAPTf2D/wBkjxh+1T8Srv8Aaw/aSWXUdFmu2u7SK64/tO6DZDbe1tEeAOjEADgGv6M4o0ijWKNQiIAqqBgADgAAdBWdoeh6T4a0iz0DQbSOw03ToUgt7eFQkcUUY2qqqOAABWrQB8uftsf8mm/FT/sB3P8ASv4qq/tV/bY/5NN+Kn/YDuf6V/FVQB//0vy1/YP/AOTwPhV/2Gof/QWr+0Kv4vf2D/8Ak8D4Vf8AYah/9Bav7QqAClHWkooA/nq0L9iq8/ab/wCCgfxV8X+Mbd4fh94a14vduRgX1wqRstqh9O8hHQcdTX9BVhZWem2UGn6fClva2yLHFFGAqIiDCqoHAAHAqKw0yw00TLYW0duLiV5pNihd8jnLO2OrHuTV8kDrQBDc3MFnby3d1IsMEKl5Hc7VVVGSSTwAB1r+Yr/goL+2X4h/ap+INv8As/fBITXvhS0vVt4xbAl9Yvs7QwA58pGOEHQ/ePavcv8Agp5+3fNrFzefszfBW+8+BiIdev7VizSybsfYoWXqM/6wjqflHevoz/gmh+whF8GdAtvjf8UrH/iudZhzZWsy86XaycgkHpPIOp/hHHXNAHvn7A/7F2i/srfD4X+upHeePvEMUb6nc4BFuuMi1iP91M/MR95uegFfoCBgYpaKACuO8fePfC3wx8I6p468a3yaboujwtPcTyHACqOg9WY8KByTxXRanqen6Np9zquq3MdnZ2cbSzTSsEjjjQZZmY8AADk1/Ll+29+1n42/bV+LFj8D/gzBPeeErW+Fvp9tADv1W7BK/aZAP+WY5KA8BfmPsAfNf7Z/7XHiv9rD4kv4gu99j4X0pni0fTt2RDCTzLJ2aWTALHt0Ffp//wAEPebD4t/9dNI/lc11Xg7/AIIpfDmXwvpkvjnxzq0WvvAjXqWSQfZkmIyyx70LFV6ZJ56198/sj/sV+CP2P4fEsPgzXtQ1seJ2tWm+3CIeX9l8wLs8pV6+Yc5oA+zqKMijIoA+XP22P+TTfip/2A7n+lfxVV/ar+2wR/wyb8VP+wHc/wBK/iqoA//T/FX4G+M/GHw9+Lnhbxp4A03+2PEWkXqTWNn5bzefMAQqeWnzNnPQc1+yP/Dw3/got/0Rdv8AwSah/jX5gfsQf8ncfCj/ALD1r/M1/ajk0Afz2/8ADw3/AIKLf9EXb/wSX/8AjR/w8N/4KLf9EXb/AMEl/wD41/Qlk0m7nFAH8ymqf8FiP2p9E1C40nWPC2iWV9aOY5oJrWeOWN14KurSAgjuDXBeO/8Agrp+01428Iar4ThtdJ0M6rA1u15ZQyLcxI4wxjZnYKxGRnGRnI5r4+/a+/5Of+J5/wCo9e/+jDXzhQB9H/s4X/xL0D4iQ/EvwD4Bf4h6j4ffzhFJZz30EM8mdksqxdWBBK7jjPPUV+q//Dw3/got/wBEXb/wSX/+NbH/AAQ+z/xdj/uFf+16/fvJoA/nt/4eG/8ABRb/AKIu3/gkv/8AGj/h4b/wUW/6Iu3/AIJL/wDxr+hLJoyaAP5Rf2rv26/2v/iJ4F/4Vh8VPDh8B6brJ3yollPZTXsUZ5jLTHJj3Y3BevQ18xfswftQ61+y14mvfGnhTwvpWt65cxeRFdaksrtbRn74hCOoUv3brjjpX6Yf8FvTnxt8MOf+Ydff+jkr8LsHrQB+yEf/AAWi/aLmkWKPwl4fZ3IAAjuSST0AHm9a9ij/AOCjf/BQWWNZYvgbvRwGUjSNSIIPII5rO/4JjfsAvq1xp/7Rnxo00fYIis2gaZcJ/rXU5F3MjD7qnmNT1PzHjFf0KrwMdKAP5/v+Hi//AAUI/wCiFn/wT6l/jR/w8X/4KEf9ELP/AIJ9S/xr+gPJrmfGPjHw54A8Man4y8X38em6PpED3FzcSnCpGgyfqT0A6k8CgD+cL49f8FAP2yfE3wm8ReD/AIm/CqLw34f8Q2zWFxeTafe22wTcDY8rbdx7A5r8ajwa/Rz9r/8Aab+Jn7cfj/VE8E2d2ngHwZbz3lvZjIRLaD797dYO0O/AUHoCFHOa/OM0Af/U/Kf9iD/k7j4Uf9h61/ma/tQr+K/9iD/k7j4Uf9h61/ma/tQoAK+IP24/2w/Dv7J/w2e8gMd9401pGi0iwLfxdDcSjqI485/2jgDvXsH7SX7Q/gf9mn4X6j8RfGU6l4laOxswwEt7dEfJFGPc8sf4Rkmv45/jr8bvHP7QfxH1P4l+P7oz3+oNiOJSfKtoAT5cMQPREB/E8nrQB574p8T634z8Ral4r8SXLXuqavcSXVzM3WSWVtzHj37V2Hwd+EXjT45fELSPht4Cs2u9V1aUIDg7IY8/PNIf4UQck/1rkfCvhfxB408Raf4U8LWEup6tqsyW9tbQqWkkkc4AAH6+gr+uP9hT9i7w/wDso+ABcagsd/4612NH1S9ABEXcW0JxkImeT/E3PpQB67+yt+zL4L/ZZ+F9p4B8LAXN9LifU78riS8uiAGc+iL0Rew9819L0UUAFeIftB/HzwL+zh8NtS+JHju5CQWqlba2UgTXlyR8kMQ7lj1PQDk11fxU+KXgr4N+BtU+IXj/AFFNN0fSozJI7kBnb+GOMfxO54VRyTX8f/7Xn7WHjb9q/wCJMvirXC1loVgWh0nTVY+XbQZ4ZhnDSv1dvwHAoA4X9ov9oHxz+0p8TdR+JHjmc77g+XaWqMTDZ2yn5IYx6AfePVjk19+f8E2v2CZ/jfrtt8ZfirZNH4D0qXdaWsgI/tS4jIwP+uCH7x/iPA4zXkX7AX7D+tftSeNU8SeKoJbL4daHKDe3GCpvZF5FtCx4JJ/1jD7o9yK/rH8PaBo/hbQ7Dw34fs49P0zTIUt7a3hULHFFGNqqoHQAUAaVvbw2sMdvbosUUShERQFVVUYAAHAAHSpqKY8iRqXkYKqgkknAAHUk0AVtQ1Cy0qxuNT1KdLW0tUaWaWVgqRxoMszMeAAOTX8yn7Zn7VPjv9un4uaZ+zv8A4J7jwql6ILdI8g6ncA4NzN/dgj5Kg8AfMecV6J/wUT/AG39d+Nnihv2W/2e3l1DS5LoWl/cWWXk1S63bRbQlc5hVvvH+I+wr9H/ANgT9h/Rv2WvBg8R+JY4734ha9ChvrjAZbOM8i1hPYD+Nv4j7AUAeY3/AOyT4R/ZP/YC+J/hzTtl/wCJdS0KebV9S2gNNMAP3adxFH0Ud+p5Nfy01/ar+2x/yab8U/8AsB3P9K/iqoA//9X8p/2IP+TuPhR/2HrX+Zr+xb4kfEfwf8JvBmq+P/HeoJpmi6RE000znrjoijqzseFUck1/G1+xrqmm6H+1L8M9Z1i5js7Gy1m3mnmlYLHHGmWZmJ4AAGTX0f8A8FC/239S/ac8bv4O8H3Elt8O/D07C0jyV+3zoSpupQOo/wCeanoOepoA8O/bB/av8Y/tW/EybxTq7taeH9PZ4tH07PyW1uT95scGV8Au34DgV8o21tPfTxWtrG008zKkcaDczMxwAAOSSegFQA81/QT/AMEvf2CjZrYftJ/GLTf37fvfD+m3CfcUji8lRh15/dA9PvelAH0J/wAE2P2EYPgR4dh+L/xPsQ3xA1qH/R4JAG/su1k6KBziZxy56qPl9a/WgDFLRQAVzfi7xd4c8B+G9R8X+Lr+LTNH0qFp7m4mbakcaDJPufQDkngVq6nqen6Pp9zquqXMdpZ2cbSzTSsESONBlmZjwAB1Nfywf8FFP28L39ozxNL8Nfh3dyW/w60WY4ZSVOp3Ccec4H/LJTny1P8AvHnFAHl/7d37aviP9qzx61npUklj4B0KV10uyzt845wbqYd3cfdB+4OOua4z9jT9kXxh+1f8RodFsY3svCulyJJrGpY+WGHOfKjJ6zOOFHbqeK87/Zr/AGcfHv7TnxKs/h94IgwhIkvr1wfIsrbPzSyEd+yr1Y8V/Yh8B/gZ4D/Z6+HGm/DbwBZrb2VkoaaYgeddXBA3zysPvMx/IYA4FAHXfDj4deEPhR4L0rwB4E09NM0TR4RDBCg7DqzHqzseWY8kmu3opCQOtAATgV+FX/BTD9vibTvtv7NPwOvWl1i6P2bW9QtSWaLfgfY4GXrI2cSFen3RzmvZf+Ckn7elv8DNAuPg58LL5ZPHurwlbq5iYH+yreQY3ZHSdwfkH8I+Y9q+Gv8AgkH8DvBfxX+JPiz4ueO4jrGp+C3tHso7j95Gbq980tcSbslnTZ8ue5z1FAH29/wTa/YJh+CejW3xp+K9ksnjzVoQ1nbSjd/ZdvKAeRz+/cfePVRwOc1+u4GBilooA+XP22P+TTfip/2A7n+lfxVV/ar+2x/yab8VP+wHc/0r+KqgD//W/AAEqcg4NB5pK/Qn9gb9ifWv2qPHi6t4jhmsvh9oMivqF2AV+0yAgi1hYjBZv4yPur7kUAe8/wDBM/8AYOk+M2u2/wAcPinZMngnRp1ewtZVwNTuYznJB/5YRkc/3jx0zX9OUUUcEawwqEjQBVVRgKAMAADoBWV4f0DSPC2i2Xhzw/Zx2GmabCkFvbwqFjiijGFVQPatmgAqOWVIkaSRgqICzMTgADkknsKe3SvwS/4Kbf8ABQMWkeofs6fBTU1aaVWg1/VLd87FPBtIXU9TyJWHT7o70AeN/wDBTH9vtviVf3vwB+D99jwpZSeXq+oQt/yEJo25hjI/5YoRyf4z7Dn8p/g/8I/G3xy+IGl/DfwBYte6tqkgUYHyRRj78sjfwog5J/rXNeDPBvif4g+KdN8G+D9Pl1TWdWmWC2t4VLO7t7dgOpJ4A5Nf1x/sN/sYeG/2T/h8pu0jv/HWtxq2rX4AOzuLaE9RGnf+83J7UAelfsn/ALLngr9lf4Y2vgnw4q3Wq3ISbVdRK4kvLnHJ9RGvRFzwPcmvqEDAxS0UAITgZr88P2+v23tF/ZZ8EnQ/DTxX3xB12JlsLYnItI2BBuph6L/Av8R9ga9P/bI/a48I/sofDWbX754r7xRqKtHo+mFvnnm6eY4ByIo+rHv0HJr8Qv2OvhV4Z/ad+LupftLfta+NdLSwW8M8djqF/DBLf3KkFVMTuCtrF0C8ZwAOM0AfmhrXhj4teMNUuvFWs6HrOqX2rSNczXT2k8jTPIdxctsOc5+lfut/wRV8N+I/Dtl8Vh4g0q70wzyaSY/tUEkO/aLnO3eozjIzj1r9eYPjp8B7aGO3t/H3h2KKJQqIupWoVVUYAAD8ADpXY+GPHngbxsLg+DfEGn66LTb5xsbmK58vfnbv8tm25wcZ64oA62iiigD5c/bY/wCTTfip/wBgO5/pX8VVf2q/tsf8mm/FT/sB3P8ASv4qqAP/1/wu8A6b4T1fxhpWn+O9WfQ/D8s6/bryOFp5IoByxSNeWYjge554r+lv4Wf8FFf+Cfnwb8CaT8OvAeo6hp+j6REscaLpc+52A+aSRsZZ3PLE9TX8uw6GkoA/rO/4e0fsX/8AQwal/wCCyf8Awo/4e0fsX/8AQwal/wCCyf8Awr+TGigD+hb9sP8A4KxeCdY+GsnhD9mO+u31vWt8N1qU9s9sbK3Iw3kh+TK+cBv4Rk9cV/PdNNLcTPPO5kkkYszMcszE5JJPUk9TTB900g60Afsr/wAE+/jd+xD+zFobeOfiLrV3e/EfU1ZGdNNmlj06A/8ALGFgMFm6u469Bx1/Tcf8FZ/2LwMf8JBqX/grn/wr+TRutNoA/rO/4e0fsX/9DBqX/gsn/wAKx/EP/BXP9kbT9Cv77QNR1LVdSggd7a1+wSwieYD5IzIwwoY8EnoK/lJpy/1FAHtHx7+O/jv9oj4k6l8SvH12Z7y8YrBACfJtbdT8kMS9lUfiTyea8WJJ5pT2ptAC/hX63f8ABMH9rf4K/swWfxAj+LmoXNi3iB9PNp9ntZLncLcTb87M4xvGM1+SFOP3RQB/WZ/w9o/Yv/6GDUv/AAWT/wCFH/D2j9i//oYNS/8ABZP/AIV/JjRQB/S3+0x/wUt/ZR+JvwC8d+APCWt38+sa9pc1rapJp80aNK+MAuwwo9zX80poHWg9aAP/2Q==" alt="로고">
+      <div><div class="co">📦 출고지기</div><h1>이런 기능이 있어요</h1></div>
+    </div>
+    <div class="meta"><div><b>2026. 06. 10.</b> 기준</div><div>DAYA COMPANY</div></div>
+  </header>
+
+  <section>
+    <div class="sec-title">주요 기능</div>
+    <div class="feat">
+      <div class="item"><div class="chk">✓</div><div><b>층별 파레트 입력·출고</b><span>B1·1F·3F·4F·5F 전 층, 파레트 번호·택배사 지정</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>엘리베이터 구분 출고</b><span>사무엘베·입고엘베 선택 후 전송</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>실시간 통합현황</b><span>대기·출고·마감·통계·예상·과거 탭</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>택배사별 집계</b><span>고려·한진·CJ·용마 등 대기/출고 분류</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>슬랙 실시간 알림</b><span>출고 발생 시 즉시 메시지 자동 발송</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>마감 보고 & 통계</b><span>층별 PLT/BOX 자동 집계, 출고율·달성률</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>예상 수량 관리</b><span>예상 대비 실제 처리량 달성률 표시</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>일일 자동 초기화·보관</b><span>날짜 변경 시 자동 리셋, 과거 데이터 보관</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>매시간 자동저장·복구</b><span>장애 시 이전 시점으로 되돌리기</span></div></div>
+      <div class="item"><div class="chk">✓</div><div><b>앱 설치(PWA)</b><span>홈 화면 아이콘으로 앱처럼 실행</span></div></div>
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title">이런 점이 좋아요</div>
+    <div class="effects">
+      <div class="eff"><div class="big">실시간</div><div class="lbl">전 층 출고 현황을<br>한 화면에서 즉시 파악</div></div>
+      <div class="eff"><div class="big">자동화</div><div class="lbl">집계·마감·알림·백업을<br>수기 없이 자동 처리</div></div>
+      <div class="eff"><div class="big">무설치</div><div class="lbl">휴대폰·PC 브라우저로<br>바로 사용, 서버 비용 최소</div></div>
+    </div>
+    <div class="lead" style="margin-top:14px;">
+      기존 수기·구두 전달 방식 대비, 작업자 입력이 <b>즉시 출고팀·관리자 화면에 반영</b>되어
+      누락·중복·전달 지연이 줄어듭니다. 마감 통계와 택배사별 집계가 자동 산출되어
+      <b>일일 마감 시간이 단축</b>되고, 매시간 자동저장으로 데이터 유실 위험을 낮췄습니다.
+    </div>
+  </section>
+
+  <section>
+    <div class="sec-title">기술 및 안정성</div>
+    <table>
+      <tr><th>사용 환경</th><td>휴대폰·PC 웹 브라우저 (별도 프로그램 설치 불필요)</td></tr>
+      <tr><th>앱 설치</th><td>홈 화면 추가(PWA) 지원 — 아이콘으로 앱처럼 실행</td></tr>
+      <tr><th>알림 연동</th><td>슬랙(Slack) 실시간 출고 알림</td></tr>
+      <tr><th>데이터 보호</th><td>매시간 자동 백업 + 복구 기능, 일일 마감 데이터 보관</td></tr>
+      <tr><th>운영 비용</th><td>전용 서버 없이 운영 — 별도 서버 유지비 부담 최소</td></tr>
+    </table>
+  </section>
+
+  <section>
+    <div class="sec-title">앞으로 더하면 좋은 것</div>
+    <div class="feat">
+      <div class="item"><div class="chk">›</div><div><b>기간별 실적 리포트</b><span>주간·월간 출고량 자동 집계 화면</span></div></div>
+      <div class="item"><div class="chk">›</div><div><b>작업자별 실적</b><span>개인별 처리량 통계 제공</span></div></div>
+      <div class="item"><div class="chk">›</div><div><b>엑셀 내보내기</b><span>마감 데이터 엑셀 다운로드</span></div></div>
+      <div class="item"><div class="chk">›</div><div><b>권한 관리</b><span>역할별 접근 권한 분리</span></div></div>
+    </div>
+  </section>
+
+  <footer><span>📦 출고지기 · DAYA COMPANY</span><span>3 / 3</span></footer>
+</div>
+
+<script>
+  // 각 페이지 가운데에 헤더 로고를 흐리게 워터마크로 깐다
+  (function(){
+    var logo = document.querySelector('.brand .logo');
+    if(!logo) return;
+    document.querySelectorAll('.page').forEach(function(p){
+      var w = document.createElement('img');
+      w.src = logo.src; w.className = 'wm'; w.alt = '';
+      p.insertBefore(w, p.firstChild);
+    });
+  })();
+</script>
+</body>
+</html>
