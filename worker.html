@@ -1164,6 +1164,7 @@ function approveInput(){
   updatePltNo();
   renderWaiting();
   updateBadges();
+  syncWaitingToFB(); // FB 동기화 — 다른 앱/기기에서 보이고, 기기 초기화 시에도 복구 가능
   showToast('✅ PLT No.'+pltNo+'\n대기로 이동됨');
   goTab('waiting');
 }
