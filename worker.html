@@ -879,6 +879,7 @@ function enterApp(){
   document.getElementById('bottomNav').style.display = 'flex';
   checkDailyReset();
   loadCfg();
+  loadCfgFromFB(); // 로그인마다 FB에서 슬랙 웹훅 등 공용설정 갱신
   loadState();
   currentFloor = session.floor;
 

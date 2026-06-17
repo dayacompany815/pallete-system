@@ -1095,7 +1095,15 @@ function saveAll() {
     if(!cfg.floorSettings[floor]) cfg.floorSettings[floor]={name:FN[floor],pharmas:null};
   });
   lsSet('plt_cfg', JSON.stringify(cfg));
-  showToast('✅ 저장 완료!','ok');
+  // Firebase에도 자동 반영 → 작업자/모니터/관리자 기기가 슬랙 웹훅 등 공용설정을 받음
+  var fbUrl=(cfg.fbUrl||'').trim();
+  if(fbUrl){
+    fetch(fbUrl+'/config.json',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(cfg)})
+      .then(function(r){ showToast(r.ok?'✅ 저장 + Firebase 동기화 완료!':'저장됨(FB 동기화 실패 '+r.status+')', r.ok?'ok':'err'); })
+      .catch(function(){ showToast('저장됨 (FB 동기화 실패: 연결 확인)','err'); });
+  } else {
+    showToast('✅ 저장 완료! (Firebase URL 없음 — 이 기기에만 저장)','ok');
+  }
 }
 
 /* ════ Firebase 동기화 ════ */
