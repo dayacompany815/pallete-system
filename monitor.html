@@ -37,7 +37,7 @@ body{font-family:'Noto Sans KR','Segoe UI',sans-serif;background:var(--bg);color
 .hdr-btn{background:rgba(3,199,90,.1);border:1.5px solid rgba(3,199,90,.35);color:var(--a1);border-radius:8px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;}
 
 /* ── 탭 ── */
-.main-tabs{background:var(--card);border-bottom:1px solid var(--border);display:flex;padding:0 24px;position:sticky;top:58px;z-index:100;}
+.main-tabs{background:var(--card);border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:2px;padding:0 24px;position:sticky;top:58px;z-index:100;overflow-x:auto;}
 .main-tab{border:none;background:transparent;cursor:pointer;font-family:inherit;padding:10px 16px;font-size:13px;font-weight:700;color:var(--muted);border-bottom:3px solid transparent;white-space:nowrap;}
 .main-tab.active{color:var(--a1);border-bottom-color:var(--a1);}
 .tab-badge{display:inline-block;background:var(--a2);color:#fff;border-radius:8px;padding:1px 6px;font-size:10px;font-weight:900;margin-left:5px;}
