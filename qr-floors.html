@@ -180,7 +180,7 @@ normalizeFloors(floors).forEach(function(fl, idx){
   // 배경 대형 텍스트
   var bg = document.createElement('div');
   bg.className = 'bg-label';
-  bg.textContent = fl.id;
+  bg.textContent = fl.name;
   bg.style.color = fl.color;
   page.appendChild(bg);
 
@@ -203,12 +203,13 @@ normalizeFloors(floors).forEach(function(fl, idx){
 
   var flabel = document.createElement('div');
   flabel.className = 'floor-label';
-  flabel.textContent = fl.id;
+  flabel.textContent = fl.name;
   flabel.style.color = fl.color;
+  flabel.style.fontSize = fl.name.length > 4 ? '52px' : '72px';
 
   var fname = document.createElement('div');
   fname.className = 'floor-name';
-  fname.textContent = fl.name + ' 전용';
+  fname.textContent = '파레트 입력 · 출고 전용';
 
   var wrap = document.createElement('div');
   wrap.className = 'qr-wrap';

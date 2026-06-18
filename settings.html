@@ -594,7 +594,7 @@ function ensureFloorSettings() {
 function nextFloorDraft() {
   for(var n=1; n<=30; n++){
     var id = n + 'F';
-    if(ALL_FLOORS.indexOf(id) < 0) return {id:id, name:n+'층'};
+    if(ALL_FLOORS.indexOf(id) < 0) return {id:id, name:'새 층'};
   }
   return {id:'F'+(ALL_FLOORS.length+1), name:'새 층'};
 }
@@ -812,15 +812,21 @@ function renderFloorManager(container) {
     row.style.gap = '8px';
 
     var badge = document.createElement('div');
-    badge.style.cssText = 'width:42px;text-align:center;background:'+fl.color+';color:#fff;border-radius:7px;padding:6px 4px;font-size:12px;font-weight:900;flex-shrink:0;';
-    badge.textContent = fl.id;
+    badge.style.cssText = 'min-width:64px;max-width:120px;text-align:center;background:'+fl.color+';color:#fff;border-radius:7px;padding:6px 8px;font-size:12px;font-weight:900;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    badge.textContent = fl.name || fl.id;
 
     var nameInp = document.createElement('input');
     nameInp.className = 'row-inp';
     nameInp.value = fl.name;
     nameInp.placeholder = '층 이름';
+    nameInp.addEventListener('input', function(){
+      cfg.floors[i].name = nameInp.value.trim() || '새 층';
+      badge.textContent = cfg.floors[i].name;
+    });
     nameInp.addEventListener('blur', function(){
-      cfg.floors[i].name = nameInp.value.trim() || fl.id;
+      cfg.floors[i].name = nameInp.value.trim() || '새 층';
+      nameInp.value = cfg.floors[i].name;
+      badge.textContent = cfg.floors[i].name;
       ensureFloorSettings();
       renderWorkers();
     });

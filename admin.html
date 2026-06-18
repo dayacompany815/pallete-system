@@ -220,7 +220,7 @@ function refreshFloorGlobals(){
   FN={};FNS={};FCOLORS={};
   cfg.floors.forEach(function(f,i){
     FN[f.id]=f.name;
-    FNS[f.id]=f.name.replace(/층$/,'');
+    FNS[f.id]=f.name;
     FCOLORS[f.id]=f.color||PC[i%PC.length];
   });
 }
