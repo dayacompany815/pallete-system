@@ -195,6 +195,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR','App
     <div id="floorSetCards"></div>
     <div class="note">
       <strong>💡 층별 제약사:</strong> 체크된 제약사만 해당 층 작업자 입력화면에 표시됩니다.<br>
+      <strong>층별 구역:</strong> 구역을 추가하면 작업 앱 입력화면에서 해당 층 구역을 선택할 수 있습니다.<br>
       <strong>전체선택</strong>을 누르면 모든 제약사가 표시됩니다.
     </div>
   </div>
@@ -486,13 +487,13 @@ var cfg = {
   ],
   fbUrl: 'https://pallete-system-default-rtdb.asia-southeast1.firebasedatabase.app',
   slackWebhook: '',
-  // 층별 설정: 층마다 사용 제약사 목록, 층 이름
+  // 층별 설정: 층마다 사용 제약사 목록, 구역 목록
   floorSettings: {
-    'B1': {name:'지하1층', pharmas:null},
-    '1F': {name:'1층',    pharmas:null},
-    '3F': {name:'3층',    pharmas:null},
-    '4F': {name:'4층',    pharmas:null},
-    '5F': {name:'5층',    pharmas:null}
+    'B1': {name:'지하1층', pharmas:null, zones:[]},
+    '1F': {name:'1층',    pharmas:null, zones:[]},
+    '3F': {name:'3층',    pharmas:null, zones:[]},
+    '4F': {name:'4층',    pharmas:null, zones:[]},
+    '5F': {name:'5층',    pharmas:null, zones:[]}
   },
   // null = 전체 제약사 사용
   appOptions: {
@@ -518,6 +519,31 @@ function loadCfg() {
       if (c.appOptions) cfg.appOptions = Object.assign(cfg.appOptions, c.appOptions);
     } catch(e) {}
   }
+  ensureFloorSettings();
+}
+
+function normalizeZones(zones) {
+  var seen = {};
+  return (Array.isArray(zones) ? zones : []).map(function(z){ return String(z || '').trim(); }).filter(function(z){
+    if(!z || seen[z]) return false;
+    seen[z] = true;
+    return true;
+  });
+}
+
+function floorSummaryText(floor) {
+  var fs = cfg.floorSettings[floor] || {};
+  var pharmaTxt = fs.pharmas === null || fs.pharmas === undefined ? '제약사 전체 '+cfg.pharmas.length+'개' : '제약사 '+fs.pharmas.length+'개';
+  var zones = normalizeZones(fs.zones);
+  return pharmaTxt + ' · 구역 ' + zones.length + '개';
+}
+
+function ensureFloorSettings() {
+  ALL_FLOORS.forEach(function(floor){
+    var base = cfg.floorSettings[floor] || {};
+    cfg.floorSettings[floor] = Object.assign({name: FN[floor], pharmas: null, zones: []}, base);
+    cfg.floorSettings[floor].zones = normalizeZones(cfg.floorSettings[floor].zones);
+  });
 }
 
 function init() {
@@ -681,11 +707,13 @@ function showTab(name, btn) {
 function renderFloorSet() {
   var container = document.getElementById('floorSetCards');
   container.innerHTML = '';
+  ensureFloorSettings();
 
   ALL_FLOORS.forEach(function(floor) {
-    var fs = cfg.floorSettings[floor] || {name: FN[floor], pharmas: null};
+    var fs = cfg.floorSettings[floor] || {name: FN[floor], pharmas: null, zones: []};
     // pharmas:null → 전체사용, pharmas:[] → 배열로 관리
     var selected = fs.pharmas; // null이면 전체
+    var zones = normalizeZones(fs.zones);
 
     var card = document.createElement('div');
     card.className = 'card';
@@ -706,7 +734,7 @@ function renderFloorSet() {
     var cntEl = document.createElement('div');
     cntEl.className = 'ccnt';
     cntEl.id = 'floorPharmaCnt_' + floor;
-    cntEl.textContent = selected === null ? '전체 ' + cfg.pharmas.length + '개' : selected.length + '개 선택';
+    cntEl.textContent = floorSummaryText(floor);
 
     chdr.appendChild(dot);
     chdr.appendChild(titleWrap);
@@ -745,6 +773,80 @@ function renderFloorSet() {
     topBtns.appendChild(clearAllBtn);
     topBtns.appendChild(useAllTag);
     cbody.appendChild(topBtns);
+
+    // 층별 구역
+    var zoneBlock = document.createElement('div');
+    zoneBlock.style.cssText = 'background:var(--card2);border-radius:10px;padding:10px;margin-bottom:10px;border:1px solid var(--border);';
+    var zoneHead = document.createElement('div');
+    zoneHead.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+    var zoneTitle = document.createElement('div');
+    zoneTitle.style.cssText = 'font-size:12px;font-weight:900;flex:1;';
+    zoneTitle.textContent = '📍 층별 구역';
+    var zoneCnt = document.createElement('div');
+    zoneCnt.style.cssText = 'font-size:10px;color:var(--muted);font-weight:800;';
+    zoneCnt.textContent = zones.length + '개';
+    zoneHead.appendChild(zoneTitle);
+    zoneHead.appendChild(zoneCnt);
+    zoneBlock.appendChild(zoneHead);
+
+    var zoneList = document.createElement('div');
+    if(zones.length === 0) {
+      var empty = document.createElement('div');
+      empty.style.cssText = 'font-size:11px;color:var(--muted);padding:7px 0;';
+      empty.textContent = '구역 없음 · 추가하면 작업 앱에서 구역 선택이 표시됩니다.';
+      zoneList.appendChild(empty);
+    } else {
+      zones.forEach(function(zoneName, zi){
+        var zrow = document.createElement('div');
+        zrow.className = 'row';
+        zrow.style.marginBottom = '5px';
+        var znum = document.createElement('div');
+        znum.className = 'rnum';
+        znum.textContent = zi + 1;
+        var zinp = document.createElement('input');
+        zinp.className = 'row-inp';
+        zinp.value = zoneName;
+        zinp.placeholder = '예: A구역';
+        zinp.addEventListener('input', function(){
+          cfg.floorSettings[floor].zones[zi] = zinp.value;
+          var cntEl2 = document.getElementById('floorPharmaCnt_'+floor);
+          if(cntEl2) cntEl2.textContent = floorSummaryText(floor);
+        });
+        var zdel = document.createElement('button');
+        zdel.className = 'dbtn';
+        zdel.textContent = '삭제';
+        zdel.addEventListener('click', function(){
+          cfg.floorSettings[floor].zones.splice(zi, 1);
+          cfg.floorSettings[floor].zones = normalizeZones(cfg.floorSettings[floor].zones);
+          renderFloorSet();
+        });
+        zrow.appendChild(znum);
+        zrow.appendChild(zinp);
+        zrow.appendChild(zdel);
+        zoneList.appendChild(zrow);
+      });
+    }
+    zoneBlock.appendChild(zoneList);
+
+    var addZoneBtn = document.createElement('button');
+    addZoneBtn.className = 'add-btn';
+    addZoneBtn.style.marginTop = '7px';
+    addZoneBtn.textContent = '＋ 구역 추가';
+    addZoneBtn.addEventListener('click', function(){
+      if(!cfg.floorSettings[floor].zones) cfg.floorSettings[floor].zones = [];
+      var curZones = normalizeZones(cfg.floorSettings[floor].zones);
+      var name = '새 구역';
+      var n = 2;
+      while(curZones.indexOf(name) >= 0) {
+        name = '새 구역 ' + n;
+        n++;
+      }
+      cfg.floorSettings[floor].zones = curZones;
+      cfg.floorSettings[floor].zones.push(name);
+      renderFloorSet();
+    });
+    zoneBlock.appendChild(addZoneBtn);
+    cbody.appendChild(zoneBlock);
 
     // 제약사 체크박스 그리드
     var grid = document.createElement('div');
@@ -792,7 +894,7 @@ function renderFloorSet() {
         // 카운트 업데이트
         var cur = cfg.floorSettings[floor].pharmas;
         var cntEl2 = document.getElementById('floorPharmaCnt_'+floor);
-        if (cntEl2) cntEl2.textContent = cur===null ? '전체 '+cfg.pharmas.length+'개' : cur.length+'개 선택';
+        if (cntEl2) cntEl2.textContent = floorSummaryText(floor);
       });
 
       grid.appendChild(item);
@@ -1092,7 +1194,8 @@ function saveAll() {
   ALL_FLOORS.forEach(function(floor){
     var cards = document.getElementById('floorSetCards');
     // nameInp는 renderFloorSet 시 cfg.floorSettings에 직접 반영되므로 별도처리 불필요
-    if(!cfg.floorSettings[floor]) cfg.floorSettings[floor]={name:FN[floor],pharmas:null};
+    if(!cfg.floorSettings[floor]) cfg.floorSettings[floor]={name:FN[floor],pharmas:null,zones:[]};
+    cfg.floorSettings[floor].zones = normalizeZones(cfg.floorSettings[floor].zones);
   });
   lsSet('plt_cfg', JSON.stringify(cfg));
   // Firebase에도 자동 반영 → 작업자/모니터/관리자 기기가 슬랙 웹훅 등 공용설정을 받음
@@ -1156,8 +1259,8 @@ function renderDataStats() {
 }
 function exportCSV(){
   var raw=lsGet('plt_state');var state=raw?JSON.parse(raw):{};var waiting=state.waiting||{};
-  var csv='층,파레트번호,택배사,제약사,BOX수\n';
-  ALL_FLOORS.forEach(function(f){(waiting[f]||[]).forEach(function(p){p.items.forEach(function(it){csv+=FN[f]+',No.'+p.pltNo+','+p.courierName+','+it.pharma+','+it.box+'\n';});});});
+  var csv='층,구역,파레트번호,택배사,제약사,BOX수\n';
+  ALL_FLOORS.forEach(function(f){(waiting[f]||[]).forEach(function(p){p.items.forEach(function(it){csv+=FN[f]+','+(p.zoneName||p.zone||'')+',No.'+p.pltNo+','+p.courierName+','+it.pharma+','+it.box+'\n';});});});
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob(['\uFEFF'+csv],{type:'text/csv'}));a.download='파레트_'+new Date().toLocaleDateString('ko')+'.csv';a.click();
   showToast('📊 CSV 저장됨','ok');
 }

@@ -90,7 +90,10 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans
 .plt-no-disp{background:var(--card2);border:1.5px solid var(--a5);border-radius:8px;color:var(--a5);font-size:20px;font-weight:900;padding:7px 14px;min-width:60px;text-align:center;}
 .c-chip{border:1.5px solid var(--border);border-radius:20px;padding:5px 11px;font-family:inherit;font-size:12px;font-weight:700;color:var(--muted);background:var(--card2);cursor:pointer;display:flex;align-items:center;gap:4px;}
 .c-chip.sel{color:#fff;}
+.z-chip{border:1.5px solid var(--border);border-radius:10px;padding:8px 11px;font-family:inherit;font-size:12px;font-weight:800;color:var(--muted);background:var(--card2);cursor:pointer;}
+.z-chip.sel{border-color:var(--a1);background:rgba(3,199,90,.09);color:var(--a1);}
 .courier-row{display:flex;flex-wrap:wrap;gap:6px;}
+.zone-row{display:flex;flex-wrap:wrap;gap:6px;}
 .pharma-row{display:flex;align-items:center;gap:7px;background:var(--card2);border-radius:8px;padding:7px 9px;margin-bottom:5px;}
 .pharma-row:last-child{margin-bottom:0;}
 .ph-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
@@ -108,6 +111,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans
 .plt-card-top{padding:6px 7px 3px;display:flex;align-items:center;justify-content:space-between;gap:4px;}
 .plt-no-tag{background:var(--a5);color:#000;border-radius:5px;padding:2px 6px;font-size:12px;font-weight:900;flex-shrink:0;}
 .plt-c-tag{font-size:9px;font-weight:700;padding:2px 5px;border-radius:5px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.plt-zone-tag{display:inline-flex;align-items:center;width:max-content;max-width:calc(100% - 14px);background:rgba(80,70,229,.1);color:var(--a4);border-radius:5px;padding:2px 6px;font-size:10px;font-weight:900;margin:0 7px 3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .plt-edit-btn{background:rgba(3,199,90,.12);border:1px solid rgba(3,199,90,.3);color:var(--a1);border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;flex-shrink:0;}
 .plt-del-btn{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.22);color:var(--red);border-radius:5px;padding:2px 5px;font-size:10px;cursor:pointer;flex-shrink:0;}
 .plt-visual{padding:4px 7px;display:flex;justify-content:center;}
@@ -138,6 +142,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans
 .ro-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;}
 .ro-no{background:var(--a5);color:#000;border-radius:4px;padding:1px 5px;font-size:11px;font-weight:900;}
 .ro-c{font-size:9px;font-weight:700;padding:1px 5px;border-radius:4px;color:#fff;}
+.ro-zone{display:inline-block;background:rgba(80,70,229,.1);color:var(--a4);border-radius:4px;padding:1px 5px;font-size:9px;font-weight:900;margin-bottom:3px;}
 .ro-box{font-size:12px;font-weight:900;margin-bottom:3px;}
 .ro-item{font-size:10px;font-weight:600;line-height:1.6;}
 .ro-item-box{color:var(--muted);font-size:9px;}
@@ -317,6 +322,10 @@ html,body{background:var(--bg);color:var(--text);font-family:'Noto Sans KR',sans
           <div style="font-size:11px;color:var(--muted)">번 (자동)</div>
         </div>
       </div>
+    </div>
+    <div class="ic" id="zoneCard" style="display:none;">
+      <div class="ic-h"><div class="ic-dot" style="background:var(--a4)"></div><div class="ic-title">구역</div></div>
+      <div class="ic-b"><div class="zone-row" id="zoneChips"></div></div>
     </div>
     <div class="ic">
       <div class="ic-h"><div class="ic-dot" style="background:var(--a2)"></div><div class="ic-title">택배사</div></div>
@@ -654,6 +663,7 @@ function enterQRMode(floor){
   document.getElementById('bottomNav').style.display = 'flex';
   loadState();
   currentFloor = floor;
+  inputZone = '';
   document.getElementById('appTitle').textContent = FN[floor]||floor;
   var db=document.getElementById('dateBar');if(db)db.style.display='block';
   var dt=document.getElementById('dateBarTxt');if(dt)dt.textContent=getTodayStr();
@@ -671,7 +681,7 @@ function enterQRMode(floor){
   setInterval(function(){ loadAllFromFB(); }, 10000);
 }
 var selName = '', selFloor = '';
-var currentFloor = '', currentTab = 'input', inputCourier = 'koryo';
+var currentFloor = '', currentTab = 'input', inputCourier = 'koryo', inputZone = '';
 var waiting = {}, done = {}, doneStatus = {};
 var shipments = {}; // FB /shipments — 당일 출고 내역(전층현황 탭에서 표시)
 var wSel = {};
@@ -685,7 +695,7 @@ function lsDel(k){try{localStorage.removeItem(k);}catch(e){}}
 /* 설정 로드 */
 function loadCfg(){
   var s = lsGet('plt_cfg');
-  if(!s) return;
+  if(!s) { ensureFloorSettings(); return; }
   try {
     var c = JSON.parse(s);
     if(c.workers && c.workers.length > 0) cfg.workers = c.workers;
@@ -695,6 +705,50 @@ function loadCfg(){
     if(c.floorSettings) cfg.floorSettings = c.floorSettings;
     if(c.slackWebhook) cfg.slackWebhook = c.slackWebhook;
   } catch(e) {}
+  ensureFloorSettings();
+}
+
+function normalizeZones(zones){
+  var seen = {};
+  return (Array.isArray(zones) ? zones : []).map(function(z){ return String(z || '').trim(); }).filter(function(z){
+    if(!z || seen[z]) return false;
+    seen[z] = true;
+    return true;
+  });
+}
+
+function ensureFloorSettings(){
+  if(!cfg.floorSettings) cfg.floorSettings = {};
+  ALL_FLOORS.forEach(function(f){
+    var base = cfg.floorSettings[f] || {};
+    cfg.floorSettings[f] = Object.assign({name:FN[f], pharmas:null, zones:[]}, base);
+    cfg.floorSettings[f].zones = normalizeZones(cfg.floorSettings[f].zones);
+  });
+}
+
+function getFloorZones(floor){
+  var fs = cfg.floorSettings && cfg.floorSettings[floor];
+  return normalizeZones(fs && fs.zones);
+}
+
+function ensureInputZone(){
+  var zones = getFloorZones(currentFloor);
+  if(zones.length === 0){
+    inputZone = '';
+    return zones;
+  }
+  if(!inputZone || zones.indexOf(inputZone) < 0) inputZone = zones[0];
+  return zones;
+}
+
+function getPalletZone(p){
+  return p && (p.zoneName || p.zone) ? String(p.zoneName || p.zone) : '';
+}
+
+function escapeHTML(v){
+  return String(v == null ? '' : v).replace(/[&<>"']/g, function(ch){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch];
+  });
 }
 
 /* Firebase /config 에서 공용 설정(작업자·비번·제약사·택배사·웹훅 등) 동기화 */
@@ -709,11 +763,14 @@ function loadCfgFromFB(){
         if(c.couriers && c.couriers.length > 0) cfg.couriers = c.couriers;
         if(c.floorSettings) cfg.floorSettings = c.floorSettings;
         if(c.slackWebhook) cfg.slackWebhook = c.slackWebhook;
+        ensureFloorSettings();
         // 로컬 캐시에 저장 (오프라인/다음 실행 시 빠르게 반영)
         lsSet('plt_cfg', JSON.stringify(cfg));
         // 로그인 화면이 떠 있으면 작업자 목록 다시 그림
         var ls = document.getElementById('loginScreen');
         if(ls && ls.style.display !== 'none') renderNameGrid();
+        var app = document.getElementById('appScreen');
+        if(app && app.style.display !== 'none' && currentFloor) renderZoneSelector();
       }
     }).catch(function(){});
 }
@@ -726,8 +783,15 @@ function sendSlackShipment(mov, elevator){
   var now = new Date();
   var hhmm = String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
   var elevLine = ELEVATORS[elevator] ? ('🛗 ' + (ELEV_EMOJI[elevator]||'') + ' ' + ELEVATORS[elevator] + '\n') : '';
+  var zoneCnt = {};
+  mov.forEach(function(p){
+    var z = getPalletZone(p);
+    if(z) zoneCnt[z] = (zoneCnt[z] || 0) + 1;
+  });
+  var zoneLine = Object.keys(zoneCnt).length ? ('📍 구역: ' + Object.keys(zoneCnt).map(function(z){ return z + ' ' + zoneCnt[z] + '개'; }).join(', ') + '\n') : '';
   var text = '🚀 *출고 알림 · ' + (FN[currentFloor]||currentFloor) + '*\n'
     + '👷 작업자: ' + (session && session.name ? session.name : '-') + '\n'
+    + zoneLine
     + elevLine
     + '📦 파레트: ' + mov.length + '개 · ' + totalBox + ' BOX\n'
     + '🕐 ' + hhmm;
@@ -956,6 +1020,7 @@ function enterApp(){
   loadCfgFromFB(); // 로그인마다 FB에서 슬랙 웹훅 등 공용설정 갱신
   loadState();
   currentFloor = session.floor;
+  inputZone = '';
 
   var worker = null;
   for(var i=0; i<cfg.workers.length; i++){
@@ -995,6 +1060,7 @@ function enterApp(){
 
 function switchFloor(f){
   currentFloor = f;
+  inputZone = '';
   document.getElementById('appTitle').textContent = session.name;
   var cft=document.getElementById('currentFloorTag');if(cft)cft.style.background=FCOLORS[f];if(cft)cft.textContent=FN[f];
   document.getElementById('appSub').textContent = '담당: ' + (function(){var w=null;for(var i=0;i<cfg.workers.length;i++)if(cfg.workers[i].name===session.name){w=cfg.workers[i];break;}return w?(w.floors||[]).map(function(fl){return FN[fl];}).join(', '):FN[f];})();
@@ -1039,6 +1105,29 @@ function getFloorPharmas(){
   return fs.pharmas.length > 0 ? fs.pharmas : cfg.pharmas;
 }
 
+function renderZoneSelector(){
+  var card = document.getElementById('zoneCard');
+  var chips = document.getElementById('zoneChips');
+  if(!card || !chips) return;
+  var zones = ensureInputZone();
+  chips.innerHTML = '';
+  if(zones.length === 0){
+    card.style.display = 'none';
+    return;
+  }
+  card.style.display = '';
+  zones.forEach(function(zone){
+    var btn = document.createElement('button');
+    btn.className = 'z-chip' + (zone === inputZone ? ' sel' : '');
+    btn.textContent = zone;
+    btn.addEventListener('click', function(){
+      inputZone = zone;
+      renderZoneSelector();
+    });
+    chips.appendChild(btn);
+  });
+}
+
 function getNextPltNo(){
   var used = {};
   (waiting[currentFloor]||[]).forEach(function(p){ used[p.pltNo] = true; });
@@ -1054,6 +1143,7 @@ function updatePltNo(){
 }
 
 function buildInputForm(){
+  renderZoneSelector();
   // 택배사
   var chips = document.getElementById('courierChips');
   chips.innerHTML = '';
@@ -1159,6 +1249,7 @@ function buildInputForm(){
 /* 제약사 1개만 즉시 승인 */
 function approveSingle(pharmaName, boxCount){
   if(!inputCourier) inputCourier='koryo';
+  ensureInputZone();
   var pi = getFloorPharmas().indexOf(pharmaName);
   var color = pi>=0 ? PC[pi%PC.length] : PC[0];
   var items = [{pharma:pharmaName, box:boxCount, color:color}];
@@ -1177,6 +1268,8 @@ function approveSingle(pharmaName, boxCount){
     courierColor:cObj.color,
     items:items,
     floor:currentFloor,
+    zone:inputZone || '',
+    zoneName:inputZone || '',
     ts:new Date().toISOString(),
     totalBox:boxCount
   };
@@ -1215,6 +1308,7 @@ function updateFloatBtn(){
 function approveInput(){
   var pltNo = getNextPltNo();
   if(!inputCourier) inputCourier = 'koryo';
+  ensureInputZone();
   var pharmas = getFloorPharmas();
   var items = [];
   pharmas.forEach(function(pname, pi){
@@ -1237,6 +1331,8 @@ function approveInput(){
     courierColor: cObj.color,
     items: items,
     floor: currentFloor,
+    zone: inputZone || '',
+    zoneName: inputZone || '',
     ts: new Date().toISOString(),
     totalBox: items.reduce(function(s,it){ return s+it.box; }, 0)
   };
@@ -1301,6 +1397,14 @@ function makePltCard(p){
   top.appendChild(editBtn);
   top.appendChild(delBtn);
   card.appendChild(top);
+
+  var zone = getPalletZone(p);
+  if(zone){
+    var zTag = document.createElement('div');
+    zTag.className = 'plt-zone-tag';
+    zTag.textContent = '📍 ' + zone;
+    card.appendChild(zTag);
+  }
 
   var vis = document.createElement('div');
   vis.className = 'plt-visual';
@@ -1525,6 +1629,13 @@ function renderAllFloors(){
           rTop.appendChild(rNo);
           rTop.appendChild(rC);
           ro.appendChild(rTop);
+          var rz = getPalletZone(p);
+          if(rz){
+            var rZone = document.createElement('div');
+            rZone.className = 'ro-zone';
+            rZone.textContent = '📍 ' + rz;
+            ro.appendChild(rZone);
+          }
           var rBox = document.createElement('div');
           rBox.className = 'ro-box';
           rBox.textContent = p.totalBox + 'BOX';
@@ -1595,6 +1706,13 @@ function makeShippedCard(s){
   var rC = document.createElement('div'); rC.className = 'ro-c'; rC.style.background = p.courierColor; rC.textContent = p.courierName;
   rTop.appendChild(rNo); rTop.appendChild(rC);
   ro.appendChild(rTop);
+  var rz = getPalletZone(p);
+  if(rz){
+    var rZone = document.createElement('div');
+    rZone.className = 'ro-zone';
+    rZone.textContent = '📍 ' + rz;
+    ro.appendChild(rZone);
+  }
   var rBox = document.createElement('div'); rBox.className = 'ro-box'; rBox.textContent = p.totalBox + 'BOX';
   ro.appendChild(rBox);
   (p.items||[]).forEach(function(it){
@@ -1764,18 +1882,19 @@ function showReport(){
   var ds = (now.getMonth()+1) + '월' + now.getDate() + '일 ' + String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
   var totalBox = pallets.reduce(function(s,p){ return s+p.totalBox; }, 0);
   var html = '<div style="text-align:center;font-size:11px;color:var(--muted);margin-bottom:10px">' + FN[_report.floor] + ' · ' + _report.worker + ' · ' + ds + '</div>';
-  html += '<table class="rp-table"><thead><tr><th>PLT</th><th>택배사</th><th>제약사</th><th>BOX</th></tr></thead><tbody>';
+  html += '<table class="rp-table"><thead><tr><th>PLT</th><th>구역</th><th>택배사</th><th>제약사</th><th>BOX</th></tr></thead><tbody>';
   pallets.forEach(function(p){
     p.items.forEach(function(item, i){
       html += '<tr>';
       if(i === 0){
         html += '<td rowspan="'+p.items.length+'" style="text-align:center;font-weight:900;color:var(--a5)">No.'+p.pltNo+'</td>';
+        html += '<td rowspan="'+p.items.length+'" style="text-align:center;font-weight:800;color:var(--a4)">'+escapeHTML(getPalletZone(p)||'-')+'</td>';
         html += '<td rowspan="'+p.items.length+'" style="text-align:center">'+p.courierIcon+' '+p.courierName+'</td>';
       }
       html += '<td>'+item.pharma+'</td><td style="text-align:center;font-weight:700">'+item.box+'</td></tr>';
     });
   });
-  html += '</tbody><tfoot><tr><td colspan="2" style="text-align:center">합계</td><td style="text-align:center">'+pallets.length+'PLT</td><td style="text-align:center;color:var(--a3)">'+totalBox+'BOX</td></tr></tfoot></table>';
+  html += '</tbody><tfoot><tr><td colspan="3" style="text-align:center">합계</td><td style="text-align:center">'+pallets.length+'PLT</td><td style="text-align:center;color:var(--a3)">'+totalBox+'BOX</td></tr></tfoot></table>';
   document.getElementById('reportBody').innerHTML = html;
   showOverlay('reportOverlay');
 }
@@ -1790,15 +1909,15 @@ function doPrint(){
   pallets.forEach(function(p){
     p.items.forEach(function(item, i){
       rows += '<tr>';
-      if(i === 0) rows += '<td rowspan="'+p.items.length+'" style="text-align:center;font-weight:900">No.'+p.pltNo+'</td><td rowspan="'+p.items.length+'" style="text-align:center">'+p.courierName+'</td>';
+      if(i === 0) rows += '<td rowspan="'+p.items.length+'" style="text-align:center;font-weight:900">No.'+p.pltNo+'</td><td rowspan="'+p.items.length+'" style="text-align:center">'+escapeHTML(getPalletZone(p)||'-')+'</td><td rowspan="'+p.items.length+'" style="text-align:center">'+p.courierName+'</td>';
       rows += '<td>'+item.pharma+'</td><td style="text-align:center;font-weight:700">'+item.box+'</td></tr>';
     });
   });
   document.getElementById('printArea').innerHTML =
     '<h2>출고 파레트 마감 보고서</h2><div class="pi">'+FN[_report.floor]+' | 담당: '+_report.worker+' | '+ds+'</div>' +
-    '<table><thead><tr><th>PLT No.</th><th>택배사</th><th>제약사</th><th>BOX수</th></tr></thead>' +
+    '<table><thead><tr><th>PLT No.</th><th>구역</th><th>택배사</th><th>제약사</th><th>BOX수</th></tr></thead>' +
     '<tbody>'+rows+'</tbody>' +
-    '<tfoot><tr><td colspan="2" style="text-align:center">합계</td><td style="text-align:center">'+pallets.length+'PLT</td><td style="text-align:center">'+totalBox+'BOX</td></tr></tfoot></table>';
+    '<tfoot><tr><td colspan="3" style="text-align:center">합계</td><td style="text-align:center">'+pallets.length+'PLT</td><td style="text-align:center">'+totalBox+'BOX</td></tr></tfoot></table>';
   setTimeout(function(){ window.print(); }, 200);
 }
 
@@ -1806,10 +1925,10 @@ function doCSV(){
   if(!_report) return;
   var pallets = _report.pallets || [];
   var now = new Date(_report.closedAt || Date.now());
-  var csv = '파레트번호,택배사,제약사,BOX수\n';
+  var csv = '파레트번호,구역,택배사,제약사,BOX수\n';
   pallets.forEach(function(p){
     p.items.forEach(function(item){
-      csv += 'No.'+p.pltNo+','+p.courierName+','+item.pharma+','+item.box+'\n';
+      csv += 'No.'+p.pltNo+','+(getPalletZone(p)||'')+','+p.courierName+','+item.pharma+','+item.box+'\n';
     });
   });
   var a = document.createElement('a');
