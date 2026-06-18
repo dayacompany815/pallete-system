@@ -140,19 +140,37 @@
 
 <script>
 var BASE = 'https://dayacompany815.github.io/pallete-system/worker.html';
+var FB_URL = 'https://pallete-system-default-rtdb.asia-southeast1.firebasedatabase.app';
 
-var FLOORS = [
-  {id:'B1', name:'지하 1층', label:'B1'},
-  {id:'1F', name:'1층',     label:'1F'},
-  {id:'3F', name:'3층',     label:'3F'},
-  {id:'4F', name:'4층',     label:'4F'},
-  {id:'5F', name:'5층',     label:'5F'},
+var DEFAULT_FLOORS = [
+  {id:'B1', name:'지하1층', color:'#7b5cff'},
+  {id:'1F', name:'1층', color:'#03C75A'},
+  {id:'3F', name:'3층', color:'#2d6cdf'},
+  {id:'4F', name:'4층', color:'#f5a623'},
+  {id:'5F', name:'5층', color:'#e0457b'}
 ];
 
 var pages = document.getElementById('pages');
 var pageEls = [];
 
-FLOORS.forEach(function(fl, idx){
+function normalizeFloorId(id){return String(id||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function normalizeFloors(floors){
+  var palette=['#7b5cff','#03C75A','#2d6cdf','#f5a623','#e0457b','#ff6b9d','#06b6d4','#84cc16'];
+  var src=Array.isArray(floors)&&floors.length?floors:DEFAULT_FLOORS;
+  var seen={}, out=[];
+  src.forEach(function(f,i){
+    var id=normalizeFloorId(f&&f.id);
+    if(!id||seen[id])return;
+    seen[id]=true;
+    out.push({id:id,name:String((f&&f.name)||id).trim()||id,color:String((f&&f.color)||palette[i%palette.length]).trim()||palette[i%palette.length]});
+  });
+  return out.length?out:DEFAULT_FLOORS.map(function(f){return Object.assign({},f);});
+}
+
+function renderFloors(floors){
+pages.innerHTML='';
+pageEls=[];
+normalizeFloors(floors).forEach(function(fl, idx){
   var url = BASE + '?qr=1&floor=' + fl.id;
 
   var page = document.createElement('div');
@@ -162,7 +180,8 @@ FLOORS.forEach(function(fl, idx){
   // 배경 대형 텍스트
   var bg = document.createElement('div');
   bg.className = 'bg-label';
-  bg.textContent = fl.label;
+  bg.textContent = fl.id;
+  bg.style.color = fl.color;
   page.appendChild(bg);
 
   // 브랜드
@@ -174,14 +193,18 @@ FLOORS.forEach(function(fl, idx){
   // 카드
   var card = document.createElement('div');
   card.className = 'card';
+  card.style.borderColor = fl.color;
 
   var badge = document.createElement('div');
   badge.className = 'badge';
   badge.textContent = '출고지기 작업 · QR 접속';
+  badge.style.background = fl.color;
+  if(fl.color.toLowerCase()==='#f5a623'||fl.color.toLowerCase()==='#ffd600') badge.style.color = '#000';
 
   var flabel = document.createElement('div');
   flabel.className = 'floor-label';
-  flabel.textContent = fl.label;
+  flabel.textContent = fl.id;
+  flabel.style.color = fl.color;
 
   var fname = document.createElement('div');
   fname.className = 'floor-name';
@@ -213,6 +236,12 @@ FLOORS.forEach(function(fl, idx){
     correctLevel: QRCode.CorrectLevel.M
   });
 });
+}
+
+fetch(FB_URL + '/config/floors.json?t=' + Date.now())
+  .then(function(r){return r.json();})
+  .then(function(floors){renderFloors(floors);})
+  .catch(function(){renderFloors(DEFAULT_FLOORS);});
 
 var curPage = 0;
 function scrollNext(){

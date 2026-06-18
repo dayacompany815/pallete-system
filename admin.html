@@ -170,10 +170,17 @@ function getTodayStr(){
   return month+'월 '+date+'일 ('+day+')';
 }
 var FB_URL = 'https://pallete-system-default-rtdb.asia-southeast1.firebasedatabase.app';
-var ALL_FLOORS = ['B1','1F','3F','4F','5F'];
-var FN = {'B1':'지하1층','1F':'1층','3F':'3층','4F':'4층','5F':'5층'};
-var FNS = {'B1':'지하1','1F':'1층','3F':'3층','4F':'4층','5F':'5층'};
-var FCOLORS = {'B1':'#3b9eff','1F':'#a78bfa','3F':'#f97316','4F':'#2ecc71','5F':'#ffd600'};
+var DEFAULT_FLOORS = [
+  {id:'B1', name:'지하1층', color:'#3b9eff'},
+  {id:'1F', name:'1층', color:'#a78bfa'},
+  {id:'3F', name:'3층', color:'#f97316'},
+  {id:'4F', name:'4층', color:'#2ecc71'},
+  {id:'5F', name:'5층', color:'#ffd600'}
+];
+var ALL_FLOORS = [];
+var FN = {};
+var FNS = {};
+var FCOLORS = {};
 var PC = ['#3b9eff','#a78bfa','#f97316','#2ecc71','#ffd600','#ff6b9d','#06b6d4','#84cc16','#ef4444','#14b8a6','#ec4899','#8b5cf6','#f59e0b','#10b981','#6366f1','#78716c','#0ea5e9'];
 var DC = [{id:'koryo',name:'고려택배',icon:'📦',color:'#3b9eff'},{id:'hanjin',name:'한진',icon:'🚚',color:'#a78bfa'},{id:'cj',name:'CJ',icon:'📫',color:'#f97316'},{id:'yongma',name:'용마',icon:'🏎',color:'#2ecc71'}];
 var DP = ['구주제약','비씨월드제약','부광약품','대우제약','조아제약','동구바이오제약','삼천당제약','안국약품','한국파마','국제약품','아주약품','진양제약','매넬티제약','팜젠사이언스','경동제약','한국휴텍스제약','경동약품','에리슨제약'];
@@ -183,7 +190,7 @@ var shipments={}, reports={};
 var ELEVATORS={office:'사무 엘베', inbound:'입고 엘베'};
 var ELEV_EMOJI={office:'🏢', inbound:'📥'};
 var ELEV_COLOR={office:'#03C75A', inbound:'#2d6cdf'};
-var cfg={couriers:DC, pharmas:DP};
+var cfg={couriers:DC, pharmas:DP, floors:DEFAULT_FLOORS.map(function(f){return Object.assign({}, f);})};
 var curTab=0, clockTimer=null;
 
 var _mem={};
@@ -192,7 +199,45 @@ function lsSet(k,v){try{localStorage.setItem(k,v);}catch(e){}_mem[k]=v;}
 
 function loadCfgLocal(){
   var s=lsGet('plt_cfg');
-  if(s){try{var c=JSON.parse(s);if(c.couriers&&c.couriers.length)cfg.couriers=c.couriers;if(c.pharmas&&c.pharmas.length)cfg.pharmas=c.pharmas;}catch(e){}}
+  if(s){try{applyConfig(JSON.parse(s), false);}catch(e){}}
+  refreshFloorGlobals();
+}
+
+function normalizeFloorId(id){return String(id||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');}
+function normalizeFloors(floors){
+  var seen={}, src=Array.isArray(floors)&&floors.length?floors:DEFAULT_FLOORS, out=[];
+  src.forEach(function(f,i){
+    var id=normalizeFloorId(f&&f.id);
+    if(!id||seen[id])return;
+    seen[id]=true;
+    out.push({id:id,name:String((f&&f.name)||id).trim()||id,color:String((f&&f.color)||PC[i%PC.length]).trim()||PC[i%PC.length]});
+  });
+  return out.length?out:DEFAULT_FLOORS.map(function(f){return Object.assign({},f);});
+}
+function refreshFloorGlobals(){
+  cfg.floors=normalizeFloors(cfg.floors);
+  ALL_FLOORS=cfg.floors.map(function(f){return f.id;});
+  FN={};FNS={};FCOLORS={};
+  cfg.floors.forEach(function(f,i){
+    FN[f.id]=f.name;
+    FNS[f.id]=f.name.replace(/층$/,'');
+    FCOLORS[f.id]=f.color||PC[i%PC.length];
+  });
+}
+function applyConfig(c, persist){
+  if(!c||typeof c!=='object')return;
+  if(c.couriers&&c.couriers.length)cfg.couriers=c.couriers;
+  if(c.pharmas&&c.pharmas.length)cfg.pharmas=c.pharmas;
+  if(c.floors&&c.floors.length)cfg.floors=c.floors;
+  refreshFloorGlobals();
+  if(persist)lsSet('plt_cfg',JSON.stringify(Object.assign({},c,{couriers:cfg.couriers,pharmas:cfg.pharmas,floors:cfg.floors})));
+}
+async function loadCfgRemote(){
+  try{
+    var r=await fetch(FB_URL+'/config.json?t='+Date.now());
+    var c=await r.json();
+    applyConfig(c, true);
+  }catch(e){}
 }
 
 
@@ -233,6 +278,7 @@ function init(){
 async function loadData(){
   loadCfgLocal();
   try{
+    await loadCfgRemote();
     // reset_signal 감지
     try{
       var rs=await fetch(FB_URL+'/reset_signal.json?t='+Date.now());
